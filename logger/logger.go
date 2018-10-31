@@ -15,7 +15,7 @@ import (
 
 	"github.com/dsnet/golib/unitconv"
 	"github.com/eyedeekay/udptunnel/common"
-    "github.com/eyedeekay/udptunnel/filter"
+    //"github.com/eyedeekay/udptunnel/filter"
 )
 
 type packetLogger struct {

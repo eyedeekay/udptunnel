@@ -8,8 +8,6 @@ import (
 	"encoding/binary"
 	"sync/atomic"
 	"time"
-
-	_ "github.com/eyedeekay/udptunnel/logger"
 )
 
 // The length of time before entries in the filter map are considered stale.
