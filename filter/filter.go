@@ -37,7 +37,7 @@ const (
 	udp  = 17
 )
 
-type ipPacket []byte
+type IpPacket []byte
 
 func (ip ipPacket) Version() int {
 	if len(ip) > 0 {

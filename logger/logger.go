@@ -60,7 +60,7 @@ func newPacketLogger(ctx context.Context, wg *sync.WaitGroup, logger udpcommon.L
 
 // Log logs the packet for periodic printing of aggregated statistics.
 func (pl *packetLogger) Log(b []byte, d udpcommon.Direction, dropped bool) {
-	ip := udpfilter.ipPacket(b)
+	ip := udpfilter.IpPacket(b)
 	p := packetLog{
 		direction:  d,
 		dropped:    dropped,
