@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/dsnet/golib/unitconv"
+    _ "github.com/eyedeekay/udptunnel/common"
 )
 
 type packetLogger struct {

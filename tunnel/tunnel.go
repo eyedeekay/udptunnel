@@ -20,19 +20,8 @@ import (
 
 	"github.com/songgao/water"
     "github.com/eyedeekay/udptunnel/filter"
+    "github.com/eyedeekay/udptunnel/common"
 )
-
-type direction byte
-
-const (
-	outbound direction = 'T' // Transmit
-	inbound  direction = 'R' // Receive
-)
-
-type logger interface {
-	Fatalf(string, ...interface{})
-	Printf(string, ...interface{})
-}
 
 type tunnel struct {
 	server        bool
