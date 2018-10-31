@@ -55,6 +55,8 @@ import (
 	"time"
 
 	"github.com/dsnet/golib/jsonfmt"
+    "github.com/eyedeekay/tunnel"
+    "github.com/eyedeekay/filter"
 )
 
 // Version of the udptunnel binary. May be set by linker when building.
