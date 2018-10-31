@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/songgao/water"
+    "github.com/eyedeekay/udptunnel/filter"
 )
 
 type direction byte
