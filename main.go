@@ -56,7 +56,7 @@ import (
 
 	"github.com/dsnet/golib/jsonfmt"
 	_ "github.com/eyedeekay/udptunnel/filter"
-	_ "github.com/eyedeekay/udptunnel/Logger"
+	_ "github.com/eyedeekay/udptunnel/logger"
 	_ "github.com/eyedeekay/udptunnel/tunnel"
 )
 

@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/songgao/water"
-    "github.com/eyedeekay/udptunnel/filter"
-    "github.com/eyedeekay/udptunnel/common"
+    _ "github.com/eyedeekay/udptunnel/filter"
+    _ "github.com/eyedeekay/udptunnel/common"
 )
 
 type tunnel struct {
