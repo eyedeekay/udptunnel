@@ -1,13 +1,13 @@
 package udpcommon
 
-type direction byte
+type Direction byte
 
 const (
-	outbound direction = 'T' // Transmit
-	inbound  direction = 'R' // Receive
+	outbound Direction = 'T' // Transmit
+	inbound  Direction = 'R' // Receive
 )
 
-type logger interface {
+type Logger interface {
 	Fatalf(string, ...interface{})
 	Printf(string, ...interface{})
 }

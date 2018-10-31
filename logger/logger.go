@@ -18,7 +18,7 @@ import (
 )
 
 type packetLogger struct {
-	logger logger
+	logger Logger
 	last   time.Time // Last time we printed statistics
 	c      chan packetLog
 	m      map[packetLog]packetCount
@@ -26,7 +26,7 @@ type packetLogger struct {
 }
 
 type packetLog struct {
-	direction  direction
+	direction  Direction
 	dropped    bool
 	ipVersion  int
 	ipProtocol int
