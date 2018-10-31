@@ -21,7 +21,7 @@ func TestFilter(t *testing.T) {
 	dh := mustDecodeHex
 	tests := []struct {
 		addTime   uint64    // Amount of time to add before test
-		direction direction // The direction of the packet
+		Direction Direction // The Direction of the packet
 		packet    []byte    // The packet data
 		dropped   bool      // Should the packet be dropped?
 	}{
@@ -67,7 +67,7 @@ func TestFilter(t *testing.T) {
 	pf := newPortFilter([]uint16{6000})
 	for i, tt := range tests {
 		now += tt.addTime
-		dropped := pf.Filter(tt.packet, tt.direction)
+		dropped := pf.Filter(tt.packet, tt.Direction)
 		if dropped != tt.dropped {
 			t.Errorf("test %d, Filter() = %t, want %t", i, dropped, tt.dropped)
 		}

@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-    _ "github.com/eyedeekay/udptunnel/logger"
+    _ "github.com/eyedeekay/udptunnel/Logger"
 )
 
 // The length of time before entries in the filter map are considered stale.
@@ -101,7 +101,7 @@ func newPortFilter(ports []uint16) *portFilter {
 	return sf
 }
 
-func (sf *portFilter) Filter(b []byte, d direction) (drop bool) {
+func (sf *portFilter) Filter(b []byte, d Direction) (drop bool) {
 	// This logic assumes malformed IP packets are rejected by the Linux kernel.
 	ip := ipPacket(b)
 	if ip.Version() != 4 {

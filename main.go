@@ -56,7 +56,7 @@ import (
 
 	"github.com/dsnet/golib/jsonfmt"
 	_ "github.com/eyedeekay/udptunnel/filter"
-	_ "github.com/eyedeekay/udptunnel/logger"
+	_ "github.com/eyedeekay/udptunnel/Logger"
 	_ "github.com/eyedeekay/udptunnel/tunnel"
 )
 
@@ -131,9 +131,9 @@ type TunnelConfig struct {
 	PacketMagic string `json:",omitempty"`
 }
 
-func loadConfig(conf string) (tunn tunnel, logger *log.Logger, closer func() error) {
+func loadConfig(conf string) (tunn tunnel, Logger *log.Logger, closer func() error) {
 	var logBuf bytes.Buffer
-	logger = log.New(io.MultiWriter(os.Stderr, &logBuf), "", log.Ldate|log.Ltime|log.Lshortfile)
+	Logger = log.New(io.MultiWriter(os.Stderr, &logBuf), "", log.Ldate|log.Ltime|log.Lshortfile)
 
 	var hash string
 	if b, _ := ioutil.ReadFile(os.Args[0]); len(b) > 0 {
@@ -144,22 +144,22 @@ func loadConfig(conf string) (tunn tunnel, logger *log.Logger, closer func() err
 	var config TunnelConfig
 	c, err := ioutil.ReadFile(conf)
 	if err != nil {
-		logger.Fatalf("unable to read config: %v", err)
+		Logger.Fatalf("unable to read config: %v", err)
 	}
 	if c, err = jsonfmt.Format(c, jsonfmt.Standardize()); err != nil {
-		logger.Fatalf("unable to parse config: %v", err)
+		Logger.Fatalf("unable to parse config: %v", err)
 	}
 	if err := json.Unmarshal(c, &config); err != nil {
-		logger.Fatalf("unable to decode config: %v", err)
+		Logger.Fatalf("unable to decode config: %v", err)
 	}
 	if config.TunnelAddress == "" {
-		logger.Fatal("required TunnelAddress field must be specified")
+		Logger.Fatal("required TunnelAddress field must be specified")
 	}
 	if config.TunnelPeerAddress == "" && runtime.GOOS == "darwin" {
-		logger.Fatal("required TunnelPeerAddress field must be specified on darwin")
+		Logger.Fatal("required TunnelPeerAddress field must be specified on darwin")
 	}
 	if config.TunnelAddress == config.TunnelPeerAddress {
-		logger.Fatal("TunnelAddress and TunnelPeerAddress must not conflict")
+		Logger.Fatal("TunnelAddress and TunnelPeerAddress must not conflict")
 	}
 	if config.HeartbeatInterval == nil {
 		config.HeartbeatInterval = new(uint)
@@ -178,31 +178,31 @@ func loadConfig(conf string) (tunn tunnel, logger *log.Logger, closer func() err
 		BinaryVersion string `json:",omitempty"`
 		BinarySHA256  string `json:",omitempty"`
 	}{config, version, hash})
-	logger.Printf("loaded config:\n%s", b.String())
+	Logger.Printf("loaded config:\n%s", b.String())
 
 	// Setup the log output.
 	if config.LogFile == "" {
-		logger.SetOutput(os.Stderr)
+		Logger.SetOutput(os.Stderr)
 		closer = func() error { return nil }
 	} else {
 		f, err := os.OpenFile(config.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0664)
 		if err != nil {
-			logger.Fatalf("error opening log file: %v", err)
+			Logger.Fatalf("error opening log file: %v", err)
 		}
 		f.Write(logBuf.Bytes()) // Write log output prior to this point
-		logger.Printf("suppress stderr logging (redirected to %s)", f.Name())
-		logger.SetOutput(f)
+		Logger.Printf("suppress stderr logging (redirected to %s)", f.Name())
+		Logger.SetOutput(f)
 		closer = f.Close
 	}
 
 	if _, _, err := net.SplitHostPort(config.NetworkAddress); err != nil {
-		logger.Fatalf("invalid network address: %v", err)
+		Logger.Fatalf("invalid network address: %v", err)
 	}
 	if net.ParseIP(config.TunnelAddress).To4() == nil {
-		logger.Fatalf("private tunnel address must be valid IPv4 address")
+		Logger.Fatalf("private tunnel address must be valid IPv4 address")
 	}
 	if len(config.AllowedPorts) == 0 {
-		logger.Fatalf("no allowed ports specified")
+		Logger.Fatalf("no allowed ports specified")
 	}
 	tunn = tunnel{
 		server:        serverMode,
@@ -213,9 +213,9 @@ func loadConfig(conf string) (tunn tunnel, logger *log.Logger, closer func() err
 		ports:         config.AllowedPorts,
 		magic:         config.PacketMagic,
 		beatInterval:  time.Second * time.Duration(*config.HeartbeatInterval),
-		log:           logger,
+		log:           Logger,
 	}
-	return tunn, logger, closer
+	return tunn, Logger, closer
 }
 
 func main() {
@@ -224,7 +224,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\t%s CONFIG_PATH\n", os.Args[0])
 		os.Exit(1)
 	}
-	tunn, logger, closer := loadConfig(os.Args[1])
+	tunn, Logger, closer := loadConfig(os.Args[1])
 	defer closer()
 
 	// Setup signal handler to initiate shutdown.
@@ -232,16 +232,16 @@ func main() {
 	go func() {
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
-		logger.Printf("received %v - initiating shutdown", <-sigc)
+		Logger.Printf("received %v - initiating shutdown", <-sigc)
 		cancel()
 	}()
 
 	// Start the VPN tunnel.
 	if tunn.server {
-		logger.Printf("%s starting in server mode", path.Base(os.Args[0]))
+		Logger.Printf("%s starting in server mode", path.Base(os.Args[0]))
 	} else {
-		logger.Printf("%s starting in client mode", path.Base(os.Args[0]))
+		Logger.Printf("%s starting in client mode", path.Base(os.Args[0]))
 	}
-	defer logger.Printf("%s shutdown", path.Base(os.Args[0]))
+	defer Logger.Printf("%s shutdown", path.Base(os.Args[0]))
 	tunn.run(ctx)
 }

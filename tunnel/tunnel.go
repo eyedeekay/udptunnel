@@ -33,7 +33,7 @@ type tunnel struct {
 	magic         string
 	beatInterval  time.Duration
 
-	log logger
+	log Logger
 
 	// remoteAddr is the address of the remote endpoint and may be
 	// arbitrarily updated.
@@ -44,7 +44,7 @@ type tunnel struct {
 	testDrop  chan<- []byte   // Copy of every dropped packet
 }
 
-// run starts the VPN tunnel over UDP using the provided config and logger.
+// run starts the VPN tunnel over UDP using the provided config and Logger.
 // When the context is canceled, the function is guaranteed to block until
 // it is fully shutdown.
 //

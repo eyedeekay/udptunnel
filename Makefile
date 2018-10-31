@@ -7,6 +7,7 @@ echo:
 	@echo "$(APPNAME) with libs from $(GOPATH)"
 
 deps:
+	go get -u github.com/eyedeekay/udptunnel/common
 	go get -u github.com/eyedeekay/udptunnel
 
 build:
