@@ -14,11 +14,12 @@ import (
 	"time"
 
 	"github.com/dsnet/golib/unitconv"
-	_ "github.com/eyedeekay/udptunnel/common"
+	"github.com/eyedeekay/udptunnel/common"
+    "github.com/eyedeekay/udptunnel/filter"
 )
 
 type packetLogger struct {
-	logger Logger
+	logger udpcommon.Logger
 	last   time.Time // Last time we printed statistics
 	c      chan packetLog
 	m      map[packetLog]packetCount
@@ -26,7 +27,7 @@ type packetLogger struct {
 }
 
 type packetLog struct {
-	direction  Direction
+	direction  udpcommon.Direction
 	dropped    bool
 	ipVersion  int
 	ipProtocol int
@@ -42,9 +43,9 @@ type packetCount struct {
 	sizes uint64
 }
 
-func newPacketLogger(ctx context.Context, wg *sync.WaitGroup, logger Logger) *packetLogger {
+func newPacketLogger(ctx context.Context, wg *sync.WaitGroup, logger udpcommon.Logger) *packetLogger {
 	pl := &packetLogger{
-		Logger: logger,
+		logger: logger,
 		last:   time.Now().Round(time.Second),
 		c:      make(chan packetLog, 1024),
 		m:      make(map[packetLog]packetCount),
@@ -58,8 +59,8 @@ func newPacketLogger(ctx context.Context, wg *sync.WaitGroup, logger Logger) *pa
 }
 
 // Log logs the packet for periodic printing of aggregated statistics.
-func (pl *packetLogger) Log(b []byte, d Direction, dropped bool) {
-	ip := ipPacket(b)
+func (pl *packetLogger) Log(b []byte, d udpcommon.Direction, dropped bool) {
+	ip := udpfilter.ipPacket(b)
 	p := packetLog{
 		direction:  d,
 		dropped:    dropped,
