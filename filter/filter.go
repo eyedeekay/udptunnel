@@ -128,7 +128,7 @@ func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 			atomic.StoreUint64(&sf.outMap[src], timeNow())
 			return false
 		}
-	case inbound:
+	case udpcommon.InBound:
 		if sf.ports[src] && dst > 0 {
 			// Check whether the destination port is somewhere we have sent
 			// an outbound packet to.
