@@ -8,6 +8,8 @@ import (
 	"encoding/binary"
 	"sync/atomic"
 	"time"
+
+    "github.com/eyedeekay/udptunnel/common"
 )
 
 // The length of time before entries in the filter map are considered stale.
@@ -99,7 +101,7 @@ func newPortFilter(ports []uint16) *portFilter {
 	return sf
 }
 
-func (sf *portFilter) Filter(b []byte, d Direction) (drop bool) {
+func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 	// This logic assumes malformed IP packets are rejected by the Linux kernel.
 	ip := ipPacket(b)
 	if ip.Version() != 4 {
@@ -113,7 +115,7 @@ func (sf *portFilter) Filter(b []byte, d Direction) (drop bool) {
 		return false
 	}
 	switch d {
-	case outbound:
+	case udpcommon.OutBound:
 		if sf.ports[src] && dst > 0 {
 			// Check whether the destination port is somewhere we have received
 			// an inbound packet from.

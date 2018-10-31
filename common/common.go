@@ -3,8 +3,8 @@ package udpcommon
 type Direction byte
 
 const (
-	outbound Direction = 'T' // Transmit
-	inbound  Direction = 'R' // Receive
+	OutBound Direction = 'T' // Transmit
+	InBound  Direction = 'R' // Receive
 )
 
 type Logger interface {
