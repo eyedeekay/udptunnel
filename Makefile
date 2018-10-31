@@ -11,3 +11,6 @@ deps:
 
 build:
 	go build
+
+fmt:
+	gofmt -w *.go tunnel/*.go filter/*.go logger/*.go
