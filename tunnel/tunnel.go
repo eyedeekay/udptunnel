@@ -18,9 +18,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	_ "github.com/eyedeekay/udptunnel/common"
+	_ "github.com/eyedeekay/udptunnel/filter"
 	"github.com/songgao/water"
-    _ "github.com/eyedeekay/udptunnel/filter"
-    _ "github.com/eyedeekay/udptunnel/common"
 )
 
 type tunnel struct {

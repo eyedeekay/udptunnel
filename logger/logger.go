@@ -14,11 +14,11 @@ import (
 	"time"
 
 	"github.com/dsnet/golib/unitconv"
-    _ "github.com/eyedeekay/udptunnel/common"
+	_ "github.com/eyedeekay/udptunnel/common"
 )
 
 type packetLogger struct {
-	Logger Logger
+	logger Logger
 	last   time.Time // Last time we printed statistics
 	c      chan packetLog
 	m      map[packetLog]packetCount
@@ -26,7 +26,7 @@ type packetLogger struct {
 }
 
 type packetLog struct {
-	Direction  Direction
+	direction  Direction
 	dropped    bool
 	ipVersion  int
 	ipProtocol int
@@ -42,9 +42,9 @@ type packetCount struct {
 	sizes uint64
 }
 
-func newPacketLogger(ctx context.Context, wg *sync.WaitGroup, Logger Logger) *packetLogger {
+func newPacketLogger(ctx context.Context, wg *sync.WaitGroup, logger Logger) *packetLogger {
 	pl := &packetLogger{
-		Logger: Logger,
+		Logger: logger,
 		last:   time.Now().Round(time.Second),
 		c:      make(chan packetLog, 1024),
 		m:      make(map[packetLog]packetCount),
@@ -61,7 +61,7 @@ func newPacketLogger(ctx context.Context, wg *sync.WaitGroup, Logger Logger) *pa
 func (pl *packetLogger) Log(b []byte, d Direction, dropped bool) {
 	ip := ipPacket(b)
 	p := packetLog{
-		Direction:  d,
+		direction:  d,
 		dropped:    dropped,
 		ipVersion:  ip.Version(),
 		length:     len(b),
@@ -110,16 +110,16 @@ func (pl *packetLogger) monitor(ctx context.Context) {
 
 			// Update total packet statistics.
 			switch {
-			case !p.dropped && p.Direction == outbound:
+			case !p.dropped && p.direction == outbound:
 				atomic.AddUint64(&pl.tx.okay.count, 1)
 				atomic.AddUint64(&pl.tx.okay.sizes, size)
-			case !p.dropped && p.Direction == inbound:
+			case !p.dropped && p.direction == inbound:
 				atomic.AddUint64(&pl.rx.okay.count, 1)
 				atomic.AddUint64(&pl.rx.okay.sizes, size)
-			case p.dropped && p.Direction == outbound:
+			case p.dropped && p.direction == outbound:
 				atomic.AddUint64(&pl.tx.drop.count, 1)
 				atomic.AddUint64(&pl.tx.drop.sizes, size)
-			case p.dropped && p.Direction == inbound:
+			case p.dropped && p.direction == inbound:
 				atomic.AddUint64(&pl.rx.drop.count, 1)
 				atomic.AddUint64(&pl.rx.drop.sizes, size)
 			}
@@ -163,7 +163,7 @@ func (pl *packetLogger) print() {
 			link = fmt.Sprintf("%s -> %s", formatIPv4(k.srcAddr), formatIPv4(k.dstAddr))
 		}
 		stats = append(stats, fmt.Sprintf("\tIPv%d/%s %s - %cx %d %spackets (%sB)",
-			k.ipVersion, proto, link, k.Direction, v.count, drop, formatIEC(v.sizes)))
+			k.ipVersion, proto, link, k.direction, v.count, drop, formatIEC(v.sizes)))
 	}
 
 	s := pl.Stats()
@@ -173,7 +173,7 @@ func (pl *packetLogger) print() {
 		s.Tx.Okay.Count, formatIEC(s.Tx.Okay.Sizes), s.Tx.Drop.Count, formatIEC(s.Tx.Drop.Sizes))
 	sort.Strings(stats[2:])
 	period := time.Now().Round(time.Second).Sub(pl.last)
-	pl.Logger.Printf("Packet statistics (%v):\n%s", period, strings.Join(stats, "\n"))
+	pl.logger.Printf("Packet statistics (%v):\n%s", period, strings.Join(stats, "\n"))
 	pl.m = map[packetLog]packetCount{}
 	pl.last = time.Now().Round(time.Second)
 }
