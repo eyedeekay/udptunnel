@@ -72,7 +72,7 @@ func (pl *packetLogger) Log(b []byte, d udpcommon.Direction, dropped bool) {
 		p.srcAddr, p.dstAddr = ip.AddressesV4()
 	}
 	if p.ipProtocol == udpcommon.UDP || p.ipProtocol == udpcommon.TCP {
-		p.srcPort, p.dstPort = transportPacket(ip.Body()).Ports()
+		p.srcPort, p.dstPort = udpfilter.TransportPacket(ip.Body()).Ports()
 	}
 	pl.c <- p
 }
@@ -160,7 +160,7 @@ func (pl *packetLogger) print() {
 			drop = "dropped "
 		}
 		link := fmt.Sprintf("%s:%d -> %s:%d", formatIPv4(k.srcAddr), k.srcPort, formatIPv4(k.dstAddr), k.dstPort)
-		if k.ipProtocol != tcp && k.ipProtocol != udp {
+		if k.ipProtocol != udpcommon.TCP && k.ipProtocol != udpcommon.UDP {
 			link = fmt.Sprintf("%s -> %s", formatIPv4(k.srcAddr), formatIPv4(k.dstAddr))
 		}
 		stats = append(stats, fmt.Sprintf("\tIPv%d/%s %s - %cx %d %spackets (%sB)",
