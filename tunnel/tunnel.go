@@ -20,6 +20,7 @@ import (
 
 	"github.com/eyedeekay/udptunnel/common"
 	"github.com/eyedeekay/udptunnel/filter"
+	"github.com/eyedeekay/udptunnel/logger"
 	"github.com/songgao/water"
 )
 
@@ -194,7 +195,7 @@ func (t tunnel) run(ctx context.Context) {
 				time.Sleep(time.Second)
 				continue
 			}
-			pl.Log(p, outbound, false)
+			pl.Log(p, udpcommon.OutBound, false)
 		}
 	}()
 
@@ -233,7 +234,7 @@ func (t tunnel) run(ctx context.Context) {
 				continue // Assume empty packets are a form of pinging
 			}
 
-			if pf.Filter(p, inbound) {
+			if pf.Filter(p, udpcommon.InBound) {
 				if t.testDrop != nil {
 					t.testDrop <- append([]byte(nil), p...)
 				}
@@ -247,7 +248,7 @@ func (t tunnel) run(ctx context.Context) {
 				}
 				t.log.Fatalf("tun write error: %v", err)
 			}
-			pl.Log(p, inbound, false)
+			pl.Log(p, udpcommon.InBound, false)
 		}
 	}()
 
