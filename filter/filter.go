@@ -101,8 +101,8 @@ func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 	if ip.Version() != 4 {
 		return true // No support for tunneling IPv6
 	}
-	if ip.Protocol() != tcp && ip.Protocol() != udp {
-		return ip.Protocol() != icmp // Always allow ping
+	if ip.Protocol() != udpcommon.TCP && ip.Protocol() != udpcommon.UDP {
+		return ip.Protocol() != udpcommon.ICMP // Always allow ping
 	}
 	src, dst := TransportPacket(ip.Body()).Ports()
 	if sf.ports[src] && sf.ports[dst] {
