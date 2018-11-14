@@ -25,7 +25,7 @@ import (
 )
 
 type Tunnel struct {
-	server        bool
+	Server        bool
 	tunDevName    string
 	tunLocalAddr  string
 	tunRemoteAddr string
@@ -50,7 +50,7 @@ type Tunnel struct {
 // it is fully shutdown.
 //
 // The channels testReady and testDrop are only used for testing and may be nil.
-func (t Tunnel) run(ctx context.Context) {
+func (t Tunnel) Run(ctx context.Context) {
 	// Determine the daemon mode from the network address.
 	var wg sync.WaitGroup
 	defer wg.Wait()
@@ -114,7 +114,7 @@ func (t Tunnel) run(ctx context.Context) {
 	// On the client, start some goroutines to accommodate for the dynamically
 	// changing environment that the client may be in.
 	magic := md5.Sum([]byte(t.magic))
-	if !t.server {
+	if !t.Server {
 		// Since the remote address could change due to updates to DNS,
 		// periodically check DNS for a new address.
 		raddr, err := net.ResolveUDPAddr("udp", t.netAddr)
@@ -227,7 +227,7 @@ func (t Tunnel) run(ctx context.Context) {
 			// that the new IP is really the remote endpoint.
 			// We assume that any adversary capable of performing a replay
 			// attack already has the power to disrupt communication.
-			if t.server {
+			if t.Server {
 				t.updateRemoteAddr(raddr)
 			}
 			if len(p) == 0 {
@@ -296,9 +296,9 @@ func isDone(ctx context.Context) bool {
 }
 
 func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr string, ports []uint16,
-	magic string, beatInterval time.Duration, log udpcommon.Logger) *Tunnel {
-	return &Tunnel{
-		server:        serverMode,
+	magic string, beatInterval time.Duration, log udpcommon.Logger) Tunnel {
+	return Tunnel{
+		Server:        serverMode,
 		tunDevName:    tunDevName,
 		tunLocalAddr:  tunRemoteAddr,
 		tunRemoteAddr: tunRemoteAddr,

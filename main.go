@@ -246,11 +246,11 @@ func main() {
 	}()
 
 	// Start the VPN tunnel.
-	if tunn.server {
+	if tunn.Server {
 		Logger.Printf("%s starting in server mode", path.Base(os.Args[0]))
 	} else {
 		Logger.Printf("%s starting in client mode", path.Base(os.Args[0]))
 	}
 	defer Logger.Printf("%s shutdown", path.Base(os.Args[0]))
-	tunn.run(ctx)
+	tunn.Run(ctx)
 }
