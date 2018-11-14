@@ -238,7 +238,7 @@ func (t tunnel) run(ctx context.Context) {
 				if t.testDrop != nil {
 					t.testDrop <- append([]byte(nil), p...)
 				}
-				pl.Log(p, common.InBound, true)
+				pl.Log(p, udpcommon.InBound, true)
 				continue
 			}
 
