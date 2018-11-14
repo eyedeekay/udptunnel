@@ -18,7 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	_ "github.com/eyedeekay/udptunnel/common"
+	"github.com/eyedeekay/udptunnel/common"
 	_ "github.com/eyedeekay/udptunnel/filter"
 	"github.com/songgao/water"
 )
@@ -33,7 +33,7 @@ type tunnel struct {
 	magic         string
 	beatInterval  time.Duration
 
-	log Logger
+	log udpcommon.Logger
 
 	// remoteAddr is the address of the remote endpoint and may be
 	// arbitrarily updated.
