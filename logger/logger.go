@@ -43,7 +43,7 @@ type packetCount struct {
 	sizes uint64
 }
 
-func newPacketLogger(ctx context.Context, wg *sync.WaitGroup, logger udpcommon.Logger) *packetLogger {
+func NewPacketLogger(ctx context.Context, wg *sync.WaitGroup, logger udpcommon.Logger) *packetLogger {
 	pl := &packetLogger{
 		logger: logger,
 		last:   time.Now().Round(time.Second),

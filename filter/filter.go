@@ -87,7 +87,7 @@ type portFilter struct {
 	ports map[uint16]bool
 }
 
-func newPortFilter(ports []uint16) *portFilter {
+func NewPortFilter(ports []uint16) *portFilter {
 	sf := &portFilter{ports: make(map[uint16]bool)}
 	for _, p := range ports {
 		sf.ports[p] = true

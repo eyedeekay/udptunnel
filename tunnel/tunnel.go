@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/eyedeekay/udptunnel/common"
-	_ "github.com/eyedeekay/udptunnel/filter"
+	"github.com/eyedeekay/udptunnel/filter"
 	"github.com/songgao/water"
 )
 
@@ -107,8 +107,8 @@ func (t tunnel) run(ctx context.Context) {
 	if t.testReady != nil {
 		close(t.testReady)
 	}
-	pf := newPortFilter(t.ports)
-	pl := newPacketLogger(ctx, &wg, t.log)
+	pf := udpfilter.NewPortFilter(t.ports)
+	pl := udplogger.NewPacketLogger(ctx, &wg, t.log)
 
 	// On the client, start some goroutines to accommodate for the dynamically
 	// changing environment that the client may be in.
@@ -178,11 +178,11 @@ func (t tunnel) run(ctx context.Context) {
 			p := b[len(magic):n]
 
 			raddr := t.loadRemoteAddr()
-			if pf.Filter(p, outbound) || raddr == nil {
+			if pf.Filter(p, udpcommon.OutBound) || raddr == nil {
 				if t.testDrop != nil {
 					t.testDrop <- append([]byte(nil), p...)
 				}
-				pl.Log(p, outbound, true)
+				pl.Log(p, udpcommon.OutBound, true)
 				continue
 			}
 
