@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-    "github.com/eyedeekay/udptunnel/common"
+	"github.com/eyedeekay/udptunnel/common"
 )
 
 // The length of time before entries in the filter map are considered stale.
