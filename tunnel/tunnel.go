@@ -305,7 +305,7 @@ func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr
 		netAddr:       netAddr,
 		ports:         ports,
 		magic:         magic,
-		beatInterval:  time.Second * time.Duration(*beatinterval),
+		beatInterval:  time.Second * time.Duration(*beatInterval),
 		log:           log,
 	}
 }
