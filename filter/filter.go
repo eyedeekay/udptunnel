@@ -39,21 +39,21 @@ const (
 
 type IpPacket []byte
 
-func (ip ipPacket) Version() int {
+func (ip IpPacket) Version() int {
 	if len(ip) > 0 {
 		return int(ip[0] >> 4)
 	}
 	return 0
 }
 
-func (ip ipPacket) Protocol() int {
+func (ip IpPacket) Protocol() int {
 	if len(ip) > 9 && ip.Version() == 4 {
 		return int(ip[9])
 	}
 	return 0
 }
 
-func (ip ipPacket) AddressesV4() (src, dst [4]byte) {
+func (ip IpPacket) AddressesV4() (src, dst [4]byte) {
 	if len(ip) >= 20 && ip.Version() == 4 {
 		copy(src[:], ip[12:16])
 		copy(dst[:], ip[16:20])
@@ -61,7 +61,7 @@ func (ip ipPacket) AddressesV4() (src, dst [4]byte) {
 	return
 }
 
-func (ip ipPacket) Body() []byte {
+func (ip IpPacket) Body() []byte {
 	if ip.Version() != 4 {
 		return nil // No support for IPv6
 	}
@@ -103,7 +103,7 @@ func newPortFilter(ports []uint16) *portFilter {
 
 func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 	// This logic assumes malformed IP packets are rejected by the Linux kernel.
-	ip := ipPacket(b)
+	ip := IpPacket(b)
 	if ip.Version() != 4 {
 		return true // No support for tunneling IPv6
 	}
