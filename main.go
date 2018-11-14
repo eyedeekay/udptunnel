@@ -57,7 +57,7 @@ import (
 	"github.com/dsnet/golib/jsonfmt"
 	_ "github.com/eyedeekay/udptunnel/filter"
 	_ "github.com/eyedeekay/udptunnel/logger"
-	_ "github.com/eyedeekay/udptunnel/tunnel"
+	"github.com/eyedeekay/udptunnel/tunnel"
 )
 
 // Version of the udptunnel binary. May be set by linker when building.
@@ -204,7 +204,7 @@ func loadConfig(conf string) (tunn udptunnel.Tunnel, Logger *log.Logger, closer 
 	if len(config.AllowedPorts) == 0 {
 		Logger.Fatalf("no allowed ports specified")
 	}
-	tunn = udptunnel.Tunnel{
+	/*tunn = udptunnel.Tunnel{
 		server:        serverMode,
 		tunDevName:    config.TunnelDevice,
 		tunLocalAddr:  config.TunnelAddress,
@@ -214,7 +214,16 @@ func loadConfig(conf string) (tunn udptunnel.Tunnel, Logger *log.Logger, closer 
 		magic:         config.PacketMagic,
 		beatInterval:  time.Second * time.Duration(*config.HeartbeatInterval),
 		log:           Logger,
-	}
+	}*/
+	tunn = udptunnel.NewTunnel(serverMode,
+		config.TunnelDevice,
+		config.TunnelAddress,
+		config.TunnelPeerAddress,
+		config.NetworkAddress,
+		config.AllowedPorts,
+		config.PacketMagic,
+		time.Second*time.Duration(*config.HeartbeatInterval),
+		Logger)
 	return tunn, Logger, closer
 }
 

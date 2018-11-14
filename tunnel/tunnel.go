@@ -294,3 +294,18 @@ func isDone(ctx context.Context) bool {
 		return false
 	}
 }
+
+func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr string, ports []uint16,
+	magic string, beatInterval time.Duration, log udpcommon.Logger) *Tunnel {
+	return &Tunnel{
+		server:        serverMode,
+		tunDevName:    tunDevName,
+		tunLocalAddr:  tunRemoteAddr,
+		tunRemoteAddr: tunRemoteAddr,
+		netAddr:       netAddr,
+		ports:         ports,
+		magic:         magic,
+		beatInterval:  time.Second * time.Duration(*beatinterval),
+		log:           log,
+	}
+}
