@@ -31,12 +31,6 @@ var timeNow = func() uint64 {
 	return atomic.LoadUint64(&atomicNow)
 }
 
-const (
-	icmp = 1
-	tcp  = 6
-	udp  = 17
-)
-
 type IpPacket []byte
 
 func (ip IpPacket) Version() int {
@@ -72,9 +66,9 @@ func (ip IpPacket) Body() []byte {
 	return ip[4*n:]
 }
 
-type transportPacket []byte
+type TransportPacket []byte
 
-func (tp transportPacket) Ports() (src, dst uint16) {
+func (tp TransportPacket) Ports() (src, dst uint16) {
 	if len(tp) >= 4 {
 		src = binary.BigEndian.Uint16(tp[:2])
 		dst = binary.BigEndian.Uint16(tp[2:])
@@ -110,7 +104,7 @@ func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 	if ip.Protocol() != tcp && ip.Protocol() != udp {
 		return ip.Protocol() != icmp // Always allow ping
 	}
-	src, dst := transportPacket(ip.Body()).Ports()
+	src, dst := TransportPacket(ip.Body()).Ports()
 	if sf.ports[src] && sf.ports[dst] {
 		return false
 	}

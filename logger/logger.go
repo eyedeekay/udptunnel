@@ -71,7 +71,7 @@ func (pl *packetLogger) Log(b []byte, d udpcommon.Direction, dropped bool) {
 	if p.ipVersion == 4 {
 		p.srcAddr, p.dstAddr = ip.AddressesV4()
 	}
-	if p.ipProtocol == udp || p.ipProtocol == tcp {
+	if p.ipProtocol == udpcommon.UDP || p.ipProtocol == udpcommon.TCP {
 		p.srcPort, p.dstPort = transportPacket(ip.Body()).Ports()
 	}
 	pl.c <- p
@@ -111,16 +111,16 @@ func (pl *packetLogger) monitor(ctx context.Context) {
 
 			// Update total packet statistics.
 			switch {
-			case !p.dropped && p.direction == outbound:
+			case !p.dropped && p.direction == udpcommon.OutBound:
 				atomic.AddUint64(&pl.tx.okay.count, 1)
 				atomic.AddUint64(&pl.tx.okay.sizes, size)
-			case !p.dropped && p.direction == inbound:
+			case !p.dropped && p.direction == udpcommon.InBound:
 				atomic.AddUint64(&pl.rx.okay.count, 1)
 				atomic.AddUint64(&pl.rx.okay.sizes, size)
-			case p.dropped && p.direction == outbound:
+			case p.dropped && p.direction == udpcommon.OutBound:
 				atomic.AddUint64(&pl.tx.drop.count, 1)
 				atomic.AddUint64(&pl.tx.drop.sizes, size)
-			case p.dropped && p.direction == inbound:
+			case p.dropped && p.direction == udpcommon.InBound:
 				atomic.AddUint64(&pl.rx.drop.count, 1)
 				atomic.AddUint64(&pl.rx.drop.sizes, size)
 			}
@@ -148,7 +148,7 @@ func (pl *packetLogger) print() {
 		return
 	}
 	stats := make([]string, 2) // First 2 lines for total stats
-	protoNames := map[int]string{icmp: "ICMP", udp: "UDP", tcp: "TCP"}
+	protoNames := map[int]string{udpcommon.ICMP: "ICMP", udpcommon.UDP: "UDP", udpcommon.TCP: "TCP"}
 	for k, v := range pl.m {
 
 		proto := protoNames[k.ipProtocol]
