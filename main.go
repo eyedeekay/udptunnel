@@ -131,7 +131,7 @@ type TunnelConfig struct {
 	PacketMagic string `json:",omitempty"`
 }
 
-func loadConfig(conf string) (tunn tunnel, Logger *log.Logger, closer func() error) {
+func loadConfig(conf string) (tunn udptunnel.Tunnel, Logger *log.Logger, closer func() error) {
 	var logBuf bytes.Buffer
 	Logger = log.New(io.MultiWriter(os.Stderr, &logBuf), "", log.Ldate|log.Ltime|log.Lshortfile)
 
@@ -204,7 +204,7 @@ func loadConfig(conf string) (tunn tunnel, Logger *log.Logger, closer func() err
 	if len(config.AllowedPorts) == 0 {
 		Logger.Fatalf("no allowed ports specified")
 	}
-	tunn = tunnel{
+	tunn = udptunnel.Tunnel{
 		server:        serverMode,
 		tunDevName:    config.TunnelDevice,
 		tunLocalAddr:  config.TunnelAddress,

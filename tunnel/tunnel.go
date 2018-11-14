@@ -24,7 +24,7 @@ import (
 	"github.com/songgao/water"
 )
 
-type tunnel struct {
+type Tunnel struct {
 	server        bool
 	tunDevName    string
 	tunLocalAddr  string
@@ -50,7 +50,7 @@ type tunnel struct {
 // it is fully shutdown.
 //
 // The channels testReady and testDrop are only used for testing and may be nil.
-func (t tunnel) run(ctx context.Context) {
+func (t Tunnel) run(ctx context.Context) {
 	// Determine the daemon mode from the network address.
 	var wg sync.WaitGroup
 	defer wg.Wait()
@@ -255,11 +255,11 @@ func (t tunnel) run(ctx context.Context) {
 	<-ctx.Done()
 }
 
-func (t *tunnel) loadRemoteAddr() *net.UDPAddr {
+func (t *Tunnel) loadRemoteAddr() *net.UDPAddr {
 	addr, _ := t.remoteAddr.Load().(*net.UDPAddr)
 	return addr
 }
-func (t *tunnel) updateRemoteAddr(addr *net.UDPAddr) {
+func (t *Tunnel) updateRemoteAddr(addr *net.UDPAddr) {
 	oldAddr := t.loadRemoteAddr()
 	if addr != nil && (oldAddr == nil || !addr.IP.Equal(oldAddr.IP) || addr.Port != oldAddr.Port || addr.Zone != oldAddr.Zone) {
 		t.remoteAddr.Store(addr)
