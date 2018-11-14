@@ -33,7 +33,7 @@ type tunnel struct {
 	magic         string
 	beatInterval  time.Duration
 
-	log udpcommon.Logger
+	log Logger
 
 	// remoteAddr is the address of the remote endpoint and may be
 	// arbitrarily updated.
