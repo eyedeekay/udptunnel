@@ -204,17 +204,6 @@ func loadConfig(conf string) (tunn udptunnel.Tunnel, Logger *log.Logger, closer 
 	if len(config.AllowedPorts) == 0 {
 		Logger.Fatalf("no allowed ports specified")
 	}
-	/*tunn = udptunnel.Tunnel{
-		server:        serverMode,
-		tunDevName:    config.TunnelDevice,
-		tunLocalAddr:  config.TunnelAddress,
-		tunRemoteAddr: config.TunnelPeerAddress,
-		netAddr:       config.NetworkAddress,
-		ports:         config.AllowedPorts,
-		magic:         config.PacketMagic,
-		beatInterval:  time.Second * time.Duration(*config.HeartbeatInterval),
-		log:           Logger,
-	}*/
 	tunn = udptunnel.NewTunnel(serverMode,
 		config.TunnelDevice,
 		config.TunnelAddress,
