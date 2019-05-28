@@ -72,15 +72,15 @@ func (t Tunnel) Run(ctx context.Context) {
 	// Setup IP properties.
 	switch runtime.GOOS {
 	case "linux":
-        t.log.Printf("/sbin/ip link set dev %s mtu 1300", iface.Name())
+		t.log.Printf("/sbin/ip link set dev %s mtu 1300", iface.Name())
 		if err := exec.Command("/sbin/ip", "link", "set", "dev", iface.Name(), "mtu", "1300").Run(); err != nil {
 			t.log.Fatalf("ip link error: %v", err)
 		}
-        t.log.Printf("/sbin/ip addr add %s %s", t.tunLocalAddr+"/24 dev", iface.Name())
+		t.log.Printf("/sbin/ip addr add %s %s", t.tunLocalAddr+"/24 dev", iface.Name())
 		if err := exec.Command("/sbin/ip", "addr", "add", t.tunLocalAddr+"/24", "dev", iface.Name()).Run(); err != nil {
 			t.log.Fatalf("ip addr error: %v", err)
 		}
-        t.log.Printf("/sbin/ip link set dev %s up", iface.Name())
+		t.log.Printf("/sbin/ip link set dev %s up", iface.Name())
 		if err := exec.Command("/sbin/ip", "link", "set", "dev", iface.Name(), "up").Run(); err != nil {
 			t.log.Fatalf("ip link error: %v", err)
 		}
@@ -88,11 +88,11 @@ func (t Tunnel) Run(ctx context.Context) {
 		if err := exec.Command("/sbin/ifconfig", iface.Name(), "mtu", "1300", t.tunLocalAddr, t.tunRemoteAddr, "up").Run(); err != nil {
 			t.log.Fatalf("ifconfig error: %v", err)
 		}
-    case "windows":
-        t.log.Printf("netsh interface ipv4 add address %s %s 1255.255.255.0", iface.Name(), t.tunLocalAddr)
-        if err := exec.Command("netsh", "interface", "ipv4", "add", "address", iface.Name(), t.tunLocalAddr, "255.255.255.0"); err != nil {
-            t.log.Fatalf("netsh error: %v", err)
-        }
+	case "windows":
+		t.log.Printf("netsh interface ipv4 add address %s %s 1255.255.255.0", iface.Name(), t.tunLocalAddr)
+		if err := exec.Command("netsh", "interface", "ipv4", "add", "address", iface.Name(), t.tunLocalAddr, "255.255.255.0"); err != nil {
+			t.log.Fatalf("netsh error: %v", err)
+		}
 	default:
 		t.log.Fatalf("no tun support for: %v", runtime.GOOS)
 	}
@@ -308,7 +308,7 @@ func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr
 	return Tunnel{
 		Server:        serverMode,
 		tunDevName:    tunDevName,
-		tunLocalAddr:  tunRemoteAddr,
+		tunLocalAddr:  tunLocalAddr,
 		tunRemoteAddr: tunRemoteAddr,
 		netAddr:       netAddr,
 		ports:         ports,

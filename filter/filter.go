@@ -105,11 +105,11 @@ func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 		return ip.Protocol() != udpcommon.ICMP // Always allow ping
 	}
 	src, dst := TransportPacket(ip.Body()).Ports()
-    if len(sf.ports) > 0 {
-        if sf.ports[src] && sf.ports[dst] {
-            return false
-        }
-    }
+	if len(sf.ports) > 0 {
+		if sf.ports[src] && sf.ports[dst] {
+			return false
+		}
+	}
 	switch d {
 	case udpcommon.OutBound:
 		if len(sf.ports) > 0 || sf.ports[src] && dst > 0 {
