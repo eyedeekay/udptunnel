@@ -1,6 +1,5 @@
 
-#y
-GOPATH = $(PWD)/.go
+#GOPATH = $(PWD)/.go
 
 APPNAME="udptunnel"
 
