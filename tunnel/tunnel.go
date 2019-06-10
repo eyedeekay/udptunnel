@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	earlylogger "log"
 	"net"
 	"os/exec"
 	"reflect"
@@ -27,9 +28,9 @@ import (
 type Tunnel struct {
 	Server        bool
 	tunDevName    string
-	tunLocalAddr  string
-	tunRemoteAddr string
-	netAddr       string
+	tunLocalAddr  net.Addr
+	tunRemoteAddr net.Addr
+	netAddr       net.Addr
 	ports         []uint16
 	magic         string
 	beatInterval  time.Duration
@@ -76,8 +77,8 @@ func (t Tunnel) Run(ctx context.Context) {
 		if err := exec.Command("/sbin/ip", "link", "set", "dev", iface.Name(), "mtu", "1300").Run(); err != nil {
 			t.log.Fatalf("ip link error: %v", err)
 		}
-		t.log.Printf("/sbin/ip addr add %s %s", t.tunLocalAddr+"/24 dev", iface.Name())
-		if err := exec.Command("/sbin/ip", "addr", "add", t.tunLocalAddr+"/24", "dev", iface.Name()).Run(); err != nil {
+		t.log.Printf("/sbin/ip addr add %s %s", t.tunLocalAddr.String()+"/24 dev", iface.Name())
+		if err := exec.Command("/sbin/ip", "addr", "add", t.tunLocalAddr.String()+"/24", "dev", iface.Name()).Run(); err != nil {
 			t.log.Fatalf("ip addr error: %v", err)
 		}
 		t.log.Printf("/sbin/ip link set dev %s up", iface.Name())
@@ -85,12 +86,12 @@ func (t Tunnel) Run(ctx context.Context) {
 			t.log.Fatalf("ip link error: %v", err)
 		}
 	case "darwin":
-		if err := exec.Command("/sbin/ifconfig", iface.Name(), "mtu", "1300", t.tunLocalAddr, t.tunRemoteAddr, "up").Run(); err != nil {
+		if err := exec.Command("/sbin/ifconfig", iface.Name(), "mtu", "1300", t.tunLocalAddr.String(), t.tunRemoteAddr.String(), "up").Run(); err != nil {
 			t.log.Fatalf("ifconfig error: %v", err)
 		}
 	case "windows":
-		t.log.Printf("netsh interface ipv4 add address %s %s 1255.255.255.0", iface.Name(), t.tunLocalAddr)
-		if err := exec.Command("netsh", "interface", "ipv4", "add", "address", iface.Name(), t.tunLocalAddr, "255.255.255.0"); err != nil {
+		t.log.Printf("netsh interface ipv4 add address %s %s 1255.255.255.0", iface.Name(), t.tunLocalAddr.String())
+		if err := exec.Command("netsh", "interface", "ipv4", "add", "address", iface.Name(), t.tunLocalAddr.String(), "255.255.255.0"); err != nil {
 			t.log.Fatalf("netsh error: %v", err)
 		}
 	default:
@@ -98,7 +99,7 @@ func (t Tunnel) Run(ctx context.Context) {
 	}
 
 	// Create a new UDP socket.
-	_, port, _ := net.SplitHostPort(t.netAddr)
+	_, port, _ := net.SplitHostPort(t.netAddr.String())
 	laddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort("", port))
 	if err != nil {
 		t.log.Fatalf("error resolving address: %v", err)
@@ -125,7 +126,7 @@ func (t Tunnel) Run(ctx context.Context) {
 	if !t.Server {
 		// Since the remote address could change due to updates to DNS,
 		// periodically check DNS for a new address.
-		raddr, err := net.ResolveUDPAddr("udp", t.netAddr)
+		raddr, err := net.ResolveUDPAddr("udp", t.netAddr.String())
 		if err != nil {
 			t.log.Fatalf("error resolving address: %v", err)
 		}
@@ -134,7 +135,7 @@ func (t Tunnel) Run(ctx context.Context) {
 			ticker := time.NewTicker(30 * time.Second)
 			defer ticker.Stop()
 			for range ticker.C {
-				raddr, _ := net.ResolveUDPAddr("udp", t.netAddr)
+				raddr, _ := net.ResolveUDPAddr("udp", t.netAddr.String())
 				if isDone(ctx) {
 					return
 				}
@@ -277,7 +278,7 @@ func (t *Tunnel) updateRemoteAddr(addr *net.UDPAddr) {
 
 // pingIface sends a broadcast ping to the IP range of the TUN device
 // until the TUN device has shutdown.
-func pingIface(addr string) {
+func pingIface(addr net.Addr) {
 	// HACK(dsnet): For reasons I do not understand, closing the TUN device
 	// does not cause a pending Read operation to become unblocked and return
 	// with some EOF error. As a workaround, we broadcast on the IP range
@@ -286,9 +287,9 @@ func pingIface(addr string) {
 	//
 	// See https://github.com/songgao/water/issues/22
 	go func() {
-		addr = strings.TrimRight(addr, "0123456798")
+		addrstring := strings.TrimRight(addr.String(), "0123456798")
 		for i := 0; i < 256; i++ {
-			cmd := exec.Command("ping", "-c", "1", addr+strconv.Itoa(i))
+			cmd := exec.Command("ping", "-c", "1", addrstring+strconv.Itoa(i))
 			cmd.Start()
 		}
 	}()
@@ -304,6 +305,27 @@ func isDone(ctx context.Context) bool {
 }
 
 func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr string, ports []uint16,
+	magic string, beatInterval time.Duration, log udpcommon.Logger) Tunnel {
+	localaddr, err := net.ResolveIPAddr("ip", tunLocalAddr)
+	remoteaddr, err := net.ResolveIPAddr("ip", tunRemoteAddr)
+	netaddr, err := net.ResolveIPAddr("ip", netAddr)
+	if err != nil {
+		earlylogger.Printf("%s", err)
+	}
+	return Tunnel{
+		Server:        serverMode,
+		tunDevName:    tunDevName,
+		tunLocalAddr:  localaddr,
+		tunRemoteAddr: remoteaddr,
+		netAddr:       netaddr,
+		ports:         ports,
+		magic:         magic,
+		beatInterval:  time.Second * time.Duration(beatInterval),
+		log:           log,
+	}
+}
+
+func BetterNewTunnel(serverMode bool, tunDevName string, tunLocalAddr, tunRemoteAddr, netAddr net.Addr, ports []uint16,
 	magic string, beatInterval time.Duration, log udpcommon.Logger) Tunnel {
 	return Tunnel{
 		Server:        serverMode,
