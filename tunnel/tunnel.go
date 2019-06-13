@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"log"
 	earlylogger "log"
 	"net"
 	"os/exec"
@@ -34,6 +35,8 @@ type Tunnel struct {
 	ports         []uint16
 	magic         string
 	beatInterval  time.Duration
+	sock          net.Conn
+	setupSock     func(net.Addr) net.Conn
 
 	log udpcommon.Logger
 
@@ -44,6 +47,23 @@ type Tunnel struct {
 	// testReady and testDrop are used by tests to detect specific events.
 	testReady chan<- struct{} // Closed when tunnel is ready
 	testDrop  chan<- []byte   // Copy of every dropped packet
+}
+
+func (t Tunnel) defaultSetupSock(netAddr net.Addr) net.Conn {
+	// Create a new UDP socket.
+	_, port, _ := net.SplitHostPort(netAddr.String())
+	if port == "" {
+		port = "0"
+	}
+	laddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort("", port))
+	if err != nil {
+		log.Fatalf("error resolving address: %v", err)
+	}
+	sock, err := net.ListenUDP("udp", laddr)
+	if err != nil {
+		log.Fatalf("error listening on socket: %v", err)
+	}
+	return sock
 }
 
 // run starts the VPN tunnel over UDP using the provided config and Logger.
@@ -90,7 +110,7 @@ func (t Tunnel) Run(ctx context.Context) {
 			t.log.Fatalf("ifconfig error: %v", err)
 		}
 	case "windows":
-		t.log.Printf("netsh interface ipv4 add address %s %s 1255.255.255.0", iface.Name(), t.tunLocalAddr.String())
+		t.log.Printf("netsh interface ipv4 add address %s %s 255.255.255.0", iface.Name(), t.tunLocalAddr.String())
 		if err := exec.Command("netsh", "interface", "ipv4", "add", "address", iface.Name(), t.tunLocalAddr.String(), "255.255.255.0"); err != nil {
 			t.log.Fatalf("netsh error: %v", err)
 		}
@@ -98,17 +118,22 @@ func (t Tunnel) Run(ctx context.Context) {
 		t.log.Fatalf("no tun support for: %v", runtime.GOOS)
 	}
 
-	// Create a new UDP socket.
-	_, port, _ := net.SplitHostPort(t.netAddr.String())
-	laddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort("", port))
-	if err != nil {
-		t.log.Fatalf("error resolving address: %v", err)
-	}
-	sock, err := net.ListenUDP("udp", laddr)
-	if err != nil {
-		t.log.Fatalf("error listening on socket: %v", err)
-	}
-	defer sock.Close()
+	/*
+		// Create a new UDP socket.
+		_, port, _ := net.SplitHostPort(t.netAddr.String())
+		if port == "" {
+			port = "0"
+		}
+		laddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort("", port))
+		if err != nil {
+			t.log.Fatalf("error resolving address: %v", err)
+		}
+		sock, err := net.ListenUDP("udp", laddr)
+		if err != nil {
+			t.log.Fatalf("error listening on socket: %v", err)
+		}*/
+	t.sock = t.setupSock(t.netAddr)
+	defer t.sock.Close()
 
 	// TODO(dsnet): We should drop root privileges at this point since the
 	// TUN device and UDP socket have been set up. However, there is no good
@@ -164,7 +189,7 @@ func (t Tunnel) Run(ctx context.Context) {
 				}
 				txn := pl.Stats().Tx.Okay.Count
 				if prevTxn == txn { // Only send if there is no outbound traffic
-					sock.WriteToUDP(magic[:], raddr)
+					t.sock.(*net.UDPConn).WriteToUDP(magic[:], raddr)
 				}
 				prevTxn = txn
 			}
@@ -196,7 +221,7 @@ func (t Tunnel) Run(ctx context.Context) {
 				continue
 			}
 
-			if _, err := sock.WriteToUDP(b[:n], raddr); err != nil {
+			if _, err := t.sock.(*net.UDPConn).WriteToUDP(b[:n], raddr); err != nil {
 				if isDone(ctx) {
 					return
 				}
@@ -214,7 +239,7 @@ func (t Tunnel) Run(ctx context.Context) {
 		defer wg.Done()
 		b := make([]byte, 1<<16)
 		for {
-			n, raddr, err := sock.ReadFromUDP(b)
+			n, raddr, err := t.sock.(*net.UDPConn).ReadFromUDP(b)
 			if err != nil {
 				if isDone(ctx) {
 					return
@@ -268,6 +293,7 @@ func (t *Tunnel) loadRemoteAddr() *net.UDPAddr {
 	addr, _ := t.remoteAddr.Load().(*net.UDPAddr)
 	return addr
 }
+
 func (t *Tunnel) updateRemoteAddr(addr *net.UDPAddr) {
 	oldAddr := t.loadRemoteAddr()
 	if addr != nil && (oldAddr == nil || !addr.IP.Equal(oldAddr.IP) || addr.Port != oldAddr.Port || addr.Zone != oldAddr.Zone) {
@@ -312,7 +338,7 @@ func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr
 	if err != nil {
 		earlylogger.Printf("%s", err)
 	}
-	return Tunnel{
+    tun := Tunnel{
 		Server:        serverMode,
 		tunDevName:    tunDevName,
 		tunLocalAddr:  localaddr,
@@ -323,11 +349,15 @@ func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr
 		beatInterval:  time.Second * time.Duration(beatInterval),
 		log:           log,
 	}
+    tun.setupSock = tun.defaultSetupSock
+	return tun
 }
 
-func BetterNewTunnel(serverMode bool, tunDevName string, tunLocalAddr, tunRemoteAddr, netAddr net.Addr, ports []uint16,
-	magic string, beatInterval time.Duration, log udpcommon.Logger) Tunnel {
-	return Tunnel{
+// NewCustomTunnel will create a tunnel using anything that implements the same
+// functions as net.UDPConn.
+func NewCustomTunnel(serverMode bool, tunDevName string, tunLocalAddr, tunRemoteAddr, netAddr net.Addr, ports []uint16,
+	magic string, beatInterval time.Duration, log udpcommon.Logger, setupSocket func(net.Addr) net.Conn) Tunnel {
+	tun := Tunnel{
 		Server:        serverMode,
 		tunDevName:    tunDevName,
 		tunLocalAddr:  tunLocalAddr,
@@ -337,5 +367,7 @@ func BetterNewTunnel(serverMode bool, tunDevName string, tunLocalAddr, tunRemote
 		magic:         magic,
 		beatInterval:  time.Second * time.Duration(beatInterval),
 		log:           log,
+        setupSock:     setupSocket,
 	}
+	return tun
 }
