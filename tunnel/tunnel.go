@@ -118,20 +118,6 @@ func (t Tunnel) Run(ctx context.Context) {
 		t.log.Fatalf("no tun support for: %v", runtime.GOOS)
 	}
 
-	/*
-		// Create a new UDP socket.
-		_, port, _ := net.SplitHostPort(t.netAddr.String())
-		if port == "" {
-			port = "0"
-		}
-		laddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort("", port))
-		if err != nil {
-			t.log.Fatalf("error resolving address: %v", err)
-		}
-		sock, err := net.ListenUDP("udp", laddr)
-		if err != nil {
-			t.log.Fatalf("error listening on socket: %v", err)
-		}*/
 	t.sock = t.setupSock(t.netAddr)
 	defer t.sock.Close()
 
@@ -369,5 +355,8 @@ func NewCustomTunnel(serverMode bool, tunDevName string, tunLocalAddr, tunRemote
 		log:           log,
         setupSock:     setupSocket,
 	}
+    if setupSocket == nil {
+        tun.setupSock = tun.defaultSetupSock
+    }
 	return tun
 }
