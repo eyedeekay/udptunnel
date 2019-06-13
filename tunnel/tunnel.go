@@ -324,7 +324,7 @@ func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr
 	if err != nil {
 		earlylogger.Printf("%s", err)
 	}
-    tun := Tunnel{
+	tun := Tunnel{
 		Server:        serverMode,
 		tunDevName:    tunDevName,
 		tunLocalAddr:  localaddr,
@@ -335,7 +335,7 @@ func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr
 		beatInterval:  time.Second * time.Duration(beatInterval),
 		log:           log,
 	}
-    tun.setupSock = tun.defaultSetupSock
+	tun.setupSock = tun.defaultSetupSock
 	return tun
 }
 
@@ -353,10 +353,10 @@ func NewCustomTunnel(serverMode bool, tunDevName string, tunLocalAddr, tunRemote
 		magic:         magic,
 		beatInterval:  time.Second * time.Duration(beatInterval),
 		log:           log,
-        setupSock:     setupSocket,
+		setupSock:     setupSocket,
 	}
-    if setupSocket == nil {
-        tun.setupSock = tun.defaultSetupSock
-    }
+	if setupSocket == nil {
+		tun.setupSock = tun.defaultSetupSock
+	}
 	return tun
 }
