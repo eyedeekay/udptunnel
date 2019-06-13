@@ -9,7 +9,6 @@ import (
 	"context"
 	"crypto/md5"
 	"log"
-	earlylogger "log"
 	"net"
 	"os/exec"
 	"reflect"
@@ -322,7 +321,7 @@ func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr
 	remoteaddr, err := net.ResolveIPAddr("ip", tunRemoteAddr)
 	netaddr, err := net.ResolveIPAddr("ip", netAddr)
 	if err != nil {
-		earlylogger.Printf("%s", err)
+		log.Printf("%s", err)
 	}
 	tun := Tunnel{
 		Server:        serverMode,
