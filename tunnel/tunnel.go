@@ -34,8 +34,8 @@ type Tunnel struct {
 	ports         []uint16
 	magic         string
 	beatInterval  time.Duration
-	sock          net.Conn
-	setupSock     func(net.Addr) net.Conn
+	sock          net.PacketConn
+	setupSock     func(net.Addr) net.PacketConn
 
 	log udpcommon.Logger
 
@@ -48,7 +48,7 @@ type Tunnel struct {
 	testDrop  chan<- []byte   // Copy of every dropped packet
 }
 
-func (t Tunnel) defaultSetupSock(netAddr net.Addr) net.Conn {
+func (t Tunnel) defaultSetupSock(netAddr net.Addr) net.PacketConn {
 	// Create a new UDP socket.
 	_, port, _ := net.SplitHostPort(netAddr.String())
 	if port == "" {
@@ -224,7 +224,7 @@ func (t Tunnel) Run(ctx context.Context) {
 		defer wg.Done()
 		b := make([]byte, 1<<16)
 		for {
-			n, raddr, err := t.sock.(*net.UDPConn).ReadFromUDP(b)
+			n, raddr, err := t.sock.ReadFrom(b)
 			if err != nil {
 				if isDone(ctx) {
 					return
@@ -279,9 +279,10 @@ func (t *Tunnel) loadRemoteAddr() *net.UDPAddr {
 	return addr
 }
 
-func (t *Tunnel) updateRemoteAddr(addr *net.UDPAddr) {
+func (t *Tunnel) updateRemoteAddr(addr net.Addr) {
 	oldAddr := t.loadRemoteAddr()
-	if addr != nil && (oldAddr == nil || !addr.IP.Equal(oldAddr.IP) || addr.Port != oldAddr.Port || addr.Zone != oldAddr.Zone) {
+	//if addr != nil && (oldAddr == nil || !addr.IP.Equal(oldAddr.IP) || addr.Port != oldAddr.Port || addr.Zone != oldAddr.Zone) {
+	if addr != oldAddr {
 		t.remoteAddr.Store(addr)
 		t.log.Printf("switching remote address: %v", addr)
 	}
@@ -341,7 +342,7 @@ func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr
 // NewCustomTunnel will create a tunnel using anything that implements the same
 // functions as net.UDPConn.
 func NewCustomTunnel(serverMode bool, tunDevName string, tunLocalAddr, tunRemoteAddr, netAddr net.Addr, ports []uint16,
-	magic string, beatInterval time.Duration, log udpcommon.Logger, setupSocket func(net.Addr) net.Conn) Tunnel {
+	magic string, beatInterval time.Duration, log udpcommon.Logger, setupSocket func(net.Addr) net.PacketConn) Tunnel {
 	tun := Tunnel{
 		Server:        serverMode,
 		tunDevName:    tunDevName,
