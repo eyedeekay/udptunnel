@@ -15,3 +15,6 @@ build:
 
 fmt:
 	find . -name '*.go' -exec gofmt -w -s {} \;
+
+test:
+	find . -type d -path ./.git -prune -o -exec bash -c 'cd {} && go test' \;

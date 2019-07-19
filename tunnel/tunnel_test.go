@@ -17,15 +17,9 @@ import (
 	"runtime"
 	"testing"
 	"time"
-)
 
-func mustDecodeHex(s string) []byte {
-	b, err := hex.DecodeString(s)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
+	. "github.com/eyedeekay/udptunnel/common"
+)
 
 type testLogger struct {
 	*testing.T // Already has Fatalf method

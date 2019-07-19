@@ -1,5 +1,9 @@
 package udpcommon
 
+import (
+	"encoding/hex"
+)
+
 type Direction byte
 
 const (
@@ -17,3 +21,11 @@ const (
 	TCP  = 6
 	UDP  = 17
 )
+
+func MustDecodeHex(s string) []byte {
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}

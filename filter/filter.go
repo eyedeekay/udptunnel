@@ -106,7 +106,7 @@ func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 		return ip.Protocol() != udpcommon.ICMP // Always allow ping
 	}
 	src, dst := TransportPacket(ip.Body()).Ports()
-	log.Println("Ports discovered: %v:%v, %v:%v", sf.ports[src], src, sf.ports[dst], dst)
+	log.Printf("Ports discovered: %v:%v, %v:%v", sf.ports[src], src, sf.ports[dst], dst)
 	if len(sf.ports) > 0 {
 		if sf.ports[src] && sf.ports[dst] {
 			log.Println("hit blacklisted port")
