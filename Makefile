@@ -14,4 +14,4 @@ build:
 	go build
 
 fmt:
-	gofmt -w -s *.go tunnel/*.go filter/*.go logger/*.go
+	find . -name '*.go' -exec gofmt -w -s {} \;
