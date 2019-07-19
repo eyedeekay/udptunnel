@@ -9,7 +9,7 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/binary"
-	"encoding/hex"
+	//	"encoding/hex"
 	"fmt"
 	"net"
 	"os"
@@ -19,6 +19,7 @@ import (
 	"time"
 
 	. "github.com/eyedeekay/udptunnel/common"
+    . "github.com/eyedeekay/udptunnel/filter"
 )
 
 type testLogger struct {
@@ -42,24 +43,24 @@ func TestTunnel(t *testing.T) {
 	defer sockSpecified.Close()
 	sockEphemeral, addrEphemeral := openSocket(t) // Local UDP socket with ephemeral port
 	defer sockEphemeral.Close()
-	sockRemote, _ := openSocket(t) // Remote socket for tunnel
+	sockRemote, _ := openSocket(t) // Remote socket for Tunnel
 	defer sockRemote.Close()
-	sockLocal, addrLocal := openSocket(t) // Local socket for tunnel
+	sockLocal, addrLocal := openSocket(t) // Local socket for Tunnel
 	sockLocal.Close()                     // Close immediately so we can use the port
 
 	chanSpecified := make(chan []byte, 1)
-	go readSocket(t, ctx, sockSpecified, chanSpecified)
+	go readSocket(ctx, t, sockSpecified, chanSpecified)
 	chanEphemeral := make(chan []byte, 1)
-	go readSocket(t, ctx, sockEphemeral, chanEphemeral)
+	go readSocket(ctx, t, sockEphemeral, chanEphemeral)
 	chanRemote := make(chan []byte, 1)
-	go readSocket(t, ctx, sockRemote, chanRemote)
+	go readSocket(ctx, t, sockRemote, chanRemote)
 
 	chanDrop := make(chan []byte, 1)
 	chanReady := make(chan struct{})
 	go func() {
 		defer close(chanDrop)
-		tunn := tunnel{
-			server:        true,
+		/*tunn := Tunnel{
+			Server:        true,
 			tunLocalAddr:  "10.0.10.1",
 			tunRemoteAddr: "10.0.10.2",
 			netAddr:       fmt.Sprintf(":%d", addrLocal.Port),
@@ -67,8 +68,21 @@ func TestTunnel(t *testing.T) {
 			log:           testLogger{t},
 			testReady:     chanReady,
 			testDrop:      chanDrop,
-		}
-		tunn.run(ctx)
+		}*/
+		tunn := NewTunnel(
+			true,
+            "test",
+			"10.0.10.1",
+			"10.0.10.2",
+			fmt.Sprintf(":%d", addrLocal.Port),
+			[]uint16{uint16(addrSpecified.Port)},
+            "",
+            uint(30),
+			testLogger{t},
+		)
+		tunn.testReady = chanReady
+		tunn.testDrop = chanDrop
+		tunn.Run(ctx)
 	}()
 
 	defer func() {
@@ -86,7 +100,7 @@ func TestTunnel(t *testing.T) {
 		}
 	}()
 
-	// Wait until the VPN tunnel is ready.
+	// Wait until the VPN Tunnel is ready.
 	<-chanReady
 
 	magic := md5.Sum(nil)
@@ -95,9 +109,9 @@ func TestTunnel(t *testing.T) {
 	addrRemoteSpecified, _ := net.ResolveUDPAddr("udp", fmt.Sprintf("10.0.10.2:%d", addrSpecified.Port))
 	addrRemoteEphemeral, _ := net.ResolveUDPAddr("udp", fmt.Sprintf("10.0.10.2:%d", addrEphemeral.Port))
 	// Ping packet from 10.0.0.2 to 10.0.0.1.
-	pingPacket := mustDecodeHex("450000542ded40004001e4b90a000a020a000a0108007ff17e6b000117c7f758000000002baf000000000000101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031323334353637")
+	pingPacket := MustDecodeHex("450000542ded40004001e4b90a000a020a000a0108007ff17e6b000117c7f758000000002baf000000000000101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031323334353637")
 	// UDP packet from 10.0.0.2:0 to 10.0.0.1:0 with "hello" body.
-	udpPacket := mustDecodeHex("450000218dac40004011851d0a000a020a000a0100000000000d000068656c6c6f")
+	udpPacket := MustDecodeHex("450000218dac40004011851d0a000a020a000a0100000000000d000068656c6c6f")
 
 	tests := []struct {
 		action func() error
@@ -229,7 +243,7 @@ func openSocket(t *testing.T) (sock *net.UDPConn, addr *net.UDPAddr) {
 	return sock, addr
 }
 
-func readSocket(t *testing.T, ctx context.Context, sock *net.UDPConn, c chan<- []byte) {
+func readSocket(ctx context.Context, t *testing.T, sock *net.UDPConn, c chan<- []byte) {
 	defer close(c)
 	buf := make([]byte, 1<<16)
 	for {
@@ -253,7 +267,7 @@ func writeSocket(sock *net.UDPConn, b []byte, addr *net.UDPAddr) func() error {
 
 func setPorts(p []byte, src, dst int) []byte {
 	p = append([]byte(nil), p...)
-	b := ipPacket(p).Body()
+	b := IPPacket(p).Body()
 	binary.BigEndian.PutUint16(b[:2], uint16(src))
 	binary.BigEndian.PutUint16(b[2:], uint16(dst))
 	return p
@@ -263,7 +277,7 @@ func wantICMP(b []byte) error {
 	if len(b) > md5.Size {
 		b = b[md5.Size:] // Strip magic
 	}
-	if proto := ipPacket(b).Protocol(); proto != icmp {
+	if proto := IPPacket(b).Protocol(); proto != ICMP {
 		return fmt.Errorf("got protocol %d, want ICMP", proto)
 	}
 	return nil
@@ -273,10 +287,10 @@ func wantUDP(b []byte) error {
 	if len(b) > md5.Size {
 		b = b[md5.Size:] // Strip magic
 	}
-	if proto := ipPacket(b).Protocol(); proto != udp {
+	if proto := IPPacket(b).Protocol(); proto != UDP {
 		return fmt.Errorf("got protocol %d, want UDP", proto)
 	}
-	return wantHello(ipPacket(b).Body()[8:])
+	return wantHello(IPPacket(b).Body()[8:])
 }
 
 func wantHello(b []byte) error {

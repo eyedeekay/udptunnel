@@ -18,3 +18,6 @@ fmt:
 
 test:
 	find . -type d -path ./.git -prune -o -exec bash -c 'cd {} && go test' \;
+
+lint:
+	find . -name '*.go' -exec golint {} \;

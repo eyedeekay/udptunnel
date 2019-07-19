@@ -25,6 +25,7 @@ import (
 	"github.com/songgao/water"
 )
 
+// Tunnel is a pluggable vpn that can use anything that implements net.PacketConn
 type Tunnel struct {
 	Server        bool
 	tunDevName    string
@@ -76,12 +77,12 @@ func (t Tunnel) defaultResolve() (net.Addr, error) {
 	return net.ResolveUDPAddr("udp", t.netAddr.String())
 }
 
-// run starts the VPN tunnel over UDP using the provided config and Logger.
+// Run starts the VPN tunnel over UDP using the provided config and Logger.
 // When the context is canceled, the function is guaranteed to block until
 // it is fully shutdown.
 //
 // The channels testReady and testDrop are only used for testing and may be nil.
-func (t Tunnel) Run(ctx context.Context) {
+func (t *Tunnel) Run(ctx context.Context) {
 	// Determine the daemon mode from the network address.
 	var wg sync.WaitGroup
 	defer wg.Wait()
@@ -334,6 +335,7 @@ func isDone(ctx context.Context) bool {
 	}
 }
 
+// NewTunnel *safely* generates a new Tunnel object using the defaults functions.
 func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr string, ports []uint16,
 	magic string, beatInterval uint, log udpcommon.Logger) *Tunnel {
 	localaddr, err := net.ResolveIPAddr("ip", tunLocalAddr)

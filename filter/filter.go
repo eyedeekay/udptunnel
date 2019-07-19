@@ -32,23 +32,28 @@ var timeNow = func() uint64 {
 	return atomic.LoadUint64(&atomicNow)
 }
 
-type IpPacket []byte
+// IPPacket is a byte slice representing an IP Packet
+type IPPacket []byte
 
-func (ip IpPacket) Version() int {
+// Version tells whether the packet is IPv4 or 6
+func (ip IPPacket) Version() int {
 	if len(ip) > 0 {
 		return int(ip[0] >> 4)
 	}
 	return 0
 }
 
-func (ip IpPacket) Protocol() int {
+// Protocol tells whether the packet is TCP, UDP, or ICMP
+func (ip IPPacket) Protocol() int {
 	if len(ip) > 9 && ip.Version() == 4 {
 		return int(ip[9])
 	}
 	return 0
 }
 
-func (ip IpPacket) AddressesV4() (src, dst [4]byte) {
+// AddressesV4 returns the IPv4 source and destination addresses of the packet
+// as byte slices
+func (ip IPPacket) AddressesV4() (src, dst [4]byte) {
 	if len(ip) >= 20 && ip.Version() == 4 {
 		copy(src[:], ip[12:16])
 		copy(dst[:], ip[16:20])
@@ -56,7 +61,8 @@ func (ip IpPacket) AddressesV4() (src, dst [4]byte) {
 	return
 }
 
-func (ip IpPacket) Body() []byte {
+// Body returns the body of the packet
+func (ip IPPacket) Body() []byte {
 	if ip.Version() != 4 {
 		return nil // No support for IPv6
 	}
@@ -67,8 +73,12 @@ func (ip IpPacket) Body() []byte {
 	return ip[4*n:]
 }
 
+// TransportPacket helps us get from 'slice of bytes being thrown blindly down
+// a tunnel' to a structured thing that can be readily validated by getting the
+// transport packet from the IP Packet
 type TransportPacket []byte
 
+// Ports tells us the ports in use by the TransportPacket
 func (tp TransportPacket) Ports() (src, dst uint16) {
 	if len(tp) >= 4 {
 		src = binary.BigEndian.Uint16(tp[:2])
@@ -77,7 +87,8 @@ func (tp TransportPacket) Ports() (src, dst uint16) {
 	return
 }
 
-type portFilter struct {
+//PortFilter is used to filter packets running *inside* the VPN.
+type PortFilter struct {
 	// Last time a packet was transmitted on some ephemeral source port.
 	outMap [1 << 16]uint64 // [port]time
 
@@ -88,17 +99,22 @@ type portFilter struct {
 	ports map[uint16]bool
 }
 
-func NewPortFilter(ports []uint16) *portFilter {
-	sf := &portFilter{ports: make(map[uint16]bool)}
+//NewPortFilter creates a new PortFilter, which is used to filter packets on
+//the VPN, which is itself using UDP.
+func NewPortFilter(ports []uint16) *PortFilter {
+	sf := &PortFilter{ports: make(map[uint16]bool)}
 	for _, p := range ports {
 		sf.ports[p] = true
 	}
 	return sf
 }
 
-func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
+// Filter takes a slice of bytes and a direction, gets the port the slice of
+// bytes is going to, compares it to the filter list, and decides whether or not
+// to drop the packet.
+func (sf *PortFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 	// This logic assumes malformed IP packets are rejected by the Linux kernel.
-	ip := IpPacket(b)
+	ip := IPPacket(b)
 	if ip.Version() != 4 {
 		return true // No support for tunneling IPv6
 	}
