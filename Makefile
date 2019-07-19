@@ -13,11 +13,14 @@ deps:
 build:
 	go build
 
+clean:
+	go clean
+
 fmt:
 	find . -name '*.go' -exec gofmt -w -s {} \;
 
 test:
-	go test ./filter ./tunnel
+	go test -v ./filter ./tunnel
 
 lint:
 	find . -name '*.go' -exec golint {} \;

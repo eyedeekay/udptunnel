@@ -118,7 +118,7 @@ func NewPortFilter(ports []uint16) *PortFilter {
 // Filter takes a slice of bytes and a direction, gets the port the slice of
 // bytes is going to, compares it to the filter list, and decides whether or not
 // to drop the packet.
-func (sf PortFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
+func (sf *PortFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 	// This logic assumes malformed IP packets are rejected by the Linux kernel.
 	ip := IPPacket(b)
 	if ip.Version() != 4 {
@@ -129,20 +129,22 @@ func (sf PortFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 	}
 	src, dst := TransportPacket(ip.Body()).Ports()
 	srcaddr, dstaddr := ip.AddressesV4()
-	log.Printf("Ports discovered: %v %v:%v %v %v:%v \n\t%v\n", sf.ports[src], srcaddr, src, sf.ports[dst], dstaddr, dst, sf.ports)
-	if len(sf.ports) > 0 {
-		if sf.ports[src] && sf.ports[dst] {
-			return false
-		}
+	//if len(sf.ports) > 0 {
+	if sf.ports[src] && sf.ports[dst] {
+		log.Printf("Ports discovered: %v %v:%v %v %v:%v \n\t%v\n", sf.ports[src], srcaddr, src, sf.ports[dst], dstaddr, dst, sf.ports)
+		return false
 	}
+	//}
 	switch d {
 	case udpcommon.OutBound:
-		if len(sf.ports) > 0 || sf.ports[src] && dst > 0 {
+		if sf.ports[src] && dst > 0 {
 			// Check whether the destination port is somewhere we have received
 			// an inbound packet from.
 			ts := atomic.LoadUint64(&sf.inMap[dst])
-			to := timeNow()-ts >= expireTimeout
-			log.Printf("Checking for a recent visit inbound: %v %v %v %v", ts, to, timeNow()-ts, expireTimeout)
+			now := timeNow()
+			tt := timeNow() - ts
+			to := tt >= expireTimeout
+			log.Printf("Checking for a recent visit outbound, result: %v, timeoutvalue=%v %v(now)-%v(stamp)=%v", to, expireTimeout, now, ts, tt)
 			return to
 		}
 		if len(sf.ports) > 0 || sf.ports[dst] && src > 0 {
@@ -153,12 +155,14 @@ func (sf PortFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 			return false
 		}
 	case udpcommon.InBound:
-		if len(sf.ports) > 0 || sf.ports[src] && dst > 0 {
+		if sf.ports[src] && dst > 0 {
 			// Check whether the destination port is somewhere we have sent
 			// an outbound packet to.
 			ts := atomic.LoadUint64(&sf.outMap[dst])
-			to := timeNow()-ts >= expireTimeout
-			log.Printf("Checking for a recent visit inbound: %v %v %v %v", ts, to, timeNow()-ts, expireTimeout)
+			now := timeNow()
+			tt := timeNow() - ts
+			to := tt >= expireTimeout
+			log.Printf("Checking for a recent visit inbound, result: %v, timeoutvalue=%v %v(now)-%v(stamp)=%v", to, expireTimeout, now, ts, tt)
 			return to
 		}
 		if len(sf.ports) > 0 || sf.ports[dst] && src > 0 {
