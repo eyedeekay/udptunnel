@@ -102,17 +102,23 @@ type PortFilter struct {
 //NewPortFilter creates a new PortFilter, which is used to filter packets on
 //the VPN, which is itself using UDP.
 func NewPortFilter(ports []uint16) *PortFilter {
-	sf := &PortFilter{ports: make(map[uint16]bool)}
+	var outMap [1 << 16]uint64
+	var inMap [1 << 16]uint64
+	sf := PortFilter{
+		ports:  make(map[uint16]bool),
+		outMap: outMap,
+		inMap:  inMap,
+	}
 	for _, p := range ports {
 		sf.ports[p] = true
 	}
-	return sf
+	return &sf
 }
 
 // Filter takes a slice of bytes and a direction, gets the port the slice of
 // bytes is going to, compares it to the filter list, and decides whether or not
 // to drop the packet.
-func (sf *PortFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
+func (sf PortFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 	// This logic assumes malformed IP packets are rejected by the Linux kernel.
 	ip := IPPacket(b)
 	if ip.Version() != 4 {
@@ -122,10 +128,10 @@ func (sf *PortFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 		return ip.Protocol() != udpcommon.ICMP // Always allow ping
 	}
 	src, dst := TransportPacket(ip.Body()).Ports()
-	log.Printf("Ports discovered: %v:%v, %v:%v", sf.ports[src], src, sf.ports[dst], dst)
+	srcaddr, dstaddr := ip.AddressesV4()
+	log.Printf("Ports discovered: %v %v:%v %v %v:%v \n\t%v\n", sf.ports[src], srcaddr, src, sf.ports[dst], dstaddr, dst, sf.ports)
 	if len(sf.ports) > 0 {
 		if sf.ports[src] && sf.ports[dst] {
-			log.Println("hit blacklisted port")
 			return false
 		}
 	}
@@ -135,12 +141,14 @@ func (sf *PortFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 			// Check whether the destination port is somewhere we have received
 			// an inbound packet from.
 			ts := atomic.LoadUint64(&sf.inMap[dst])
-			return timeNow()-ts >= expireTimeout
+			to := timeNow()-ts >= expireTimeout
+			log.Printf("Checking for a recent visit inbound: %v %v %v %v", ts, to, timeNow()-ts, expireTimeout)
+			return to
 		}
 		if len(sf.ports) > 0 || sf.ports[dst] && src > 0 {
 			// Allowed outbound packet, remember the source port so that inbound
 			// traffic is allowed to hit that destination port.
-			log.Println("Outbound packet filter")
+			log.Println("Outbound packet filter passed")
 			atomic.StoreUint64(&sf.outMap[src], timeNow())
 			return false
 		}
@@ -149,12 +157,14 @@ func (sf *PortFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 			// Check whether the destination port is somewhere we have sent
 			// an outbound packet to.
 			ts := atomic.LoadUint64(&sf.outMap[dst])
-			return timeNow()-ts >= expireTimeout
+			to := timeNow()-ts >= expireTimeout
+			log.Printf("Checking for a recent visit inbound: %v %v %v %v", ts, to, timeNow()-ts, expireTimeout)
+			return to
 		}
 		if len(sf.ports) > 0 || sf.ports[dst] && src > 0 {
 			// Allowed inbound packet, remember the source port so that outbound
 			// traffic is allowed to hit that destination port.
-			log.Println("Inbound packet filter")
+			log.Println("Inbound packet filter passed")
 			atomic.StoreUint64(&sf.inMap[src], timeNow())
 			return false
 		}

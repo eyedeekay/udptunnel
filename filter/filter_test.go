@@ -5,6 +5,7 @@
 package udpfilter
 
 import (
+	"log"
 	"testing"
 	"time"
 
@@ -68,6 +69,7 @@ func TestFilter(t *testing.T) {
 
 	pf := NewPortFilter([]uint16{6000})
 	for i, tt := range tests {
+		log.Println(i)
 		now += tt.addTime
 		dropped := pf.Filter(tt.packet, tt.Direction)
 		if dropped != tt.dropped {
