@@ -18,7 +18,8 @@ import (
 	"github.com/eyedeekay/udptunnel/filter"
 )
 
-type packetLogger struct {
+// PacketLogger is a structured logger for packets
+type PacketLogger struct {
 	logger udpcommon.Logger
 	last   time.Time // Last time we printed statistics
 	c      chan packetLog
@@ -43,8 +44,10 @@ type packetCount struct {
 	sizes uint64
 }
 
-func NewPacketLogger(ctx context.Context, wg *sync.WaitGroup, logger udpcommon.Logger) *packetLogger {
-	pl := &packetLogger{
+// NewPacketLogger creates the structured logger, which is unfortunately used
+// somewhat inefficiently for now in this fork.
+func NewPacketLogger(ctx context.Context, wg *sync.WaitGroup, logger udpcommon.Logger) *PacketLogger {
+	pl := &PacketLogger{
 		logger: logger,
 		last:   time.Now().Round(time.Second),
 		c:      make(chan packetLog, 1024),
@@ -59,7 +62,7 @@ func NewPacketLogger(ctx context.Context, wg *sync.WaitGroup, logger udpcommon.L
 }
 
 // Log logs the packet for periodic printing of aggregated statistics.
-func (pl *packetLogger) Log(b []byte, d udpcommon.Direction, dropped bool) {
+func (pl *PacketLogger) Log(b []byte, d udpcommon.Direction, dropped bool) {
 	ip := udpfilter.IPPacket(b)
 	p := packetLog{
 		direction:  d,
@@ -79,7 +82,7 @@ func (pl *packetLogger) Log(b []byte, d udpcommon.Direction, dropped bool) {
 
 // Stats returns statistics on the total number and sizes of packets
 // transmitted or received.
-func (pl *packetLogger) Stats() (s struct {
+func (pl *PacketLogger) Stats() (s struct {
 	Rx, Tx struct{ Okay, Drop struct{ Count, Sizes uint64 } }
 }) {
 	s.Tx.Okay.Count = atomic.LoadUint64(&pl.tx.okay.count)
@@ -93,7 +96,7 @@ func (pl *packetLogger) Stats() (s struct {
 	return
 }
 
-func (pl *packetLogger) monitor(ctx context.Context) {
+func (pl *PacketLogger) monitor(ctx context.Context) {
 	t := time.NewTicker(30 * time.Second)
 	defer t.Stop()
 
@@ -143,7 +146,7 @@ func (pl *packetLogger) monitor(ctx context.Context) {
 
 // print prints an aggregated summary of all packets.
 // To avoid races, this method is only called from monitor.
-func (pl *packetLogger) print() {
+func (pl *PacketLogger) print() {
 	if len(pl.m) == 0 {
 		return
 	}

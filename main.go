@@ -62,6 +62,7 @@ import (
 // Version of the udptunnel binary. May be set by linker when building.
 var version string
 
+// TunnelConfig is a string representing a tunnel
 type TunnelConfig struct {
 	// LogFile is where the tunnel daemon directs its output log.
 	// If the path is empty, then the server outputs to os.Stderr.
