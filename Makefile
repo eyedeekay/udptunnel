@@ -17,7 +17,7 @@ fmt:
 	find . -name '*.go' -exec gofmt -w -s {} \;
 
 test:
-	find . -type d -path ./.git -prune -o -exec bash -c 'cd {} && go test' \;
+	go test ./filter ./tunnel
 
 lint:
 	find . -name '*.go' -exec golint {} \;

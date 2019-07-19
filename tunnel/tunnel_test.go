@@ -19,7 +19,7 @@ import (
 	"time"
 
 	. "github.com/eyedeekay/udptunnel/common"
-    . "github.com/eyedeekay/udptunnel/filter"
+	. "github.com/eyedeekay/udptunnel/filter"
 )
 
 type testLogger struct {
@@ -71,13 +71,13 @@ func TestTunnel(t *testing.T) {
 		}*/
 		tunn := NewTunnel(
 			true,
-            "test",
+			"test",
 			"10.0.10.1",
 			"10.0.10.2",
 			fmt.Sprintf(":%d", addrLocal.Port),
 			[]uint16{uint16(addrSpecified.Port)},
-            "",
-            uint(30),
+			"",
+			uint(30),
 			testLogger{t},
 		)
 		tunn.testReady = chanReady
