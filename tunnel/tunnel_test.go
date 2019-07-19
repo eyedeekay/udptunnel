@@ -136,7 +136,7 @@ func TestTunnel(t *testing.T) {
 			result: "outboundRemote",
 			check:  wantICMP,
 		}, {
-			// Able to succesfully ping the remote host now.
+			// Able to successfully ping the remote host now.
 			action: exec.Command("ping", "-c", "1", "-w", "1", "10.0.10.2").Start,
 			result: "outboundRemote",
 			check:  wantICMP,
