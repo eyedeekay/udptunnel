@@ -6,9 +6,9 @@ package udpfilter
 
 import (
 	"encoding/binary"
+	"log"
 	"sync/atomic"
 	"time"
-    "log"
 
 	"github.com/eyedeekay/udptunnel/common"
 )
@@ -106,9 +106,10 @@ func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 		return ip.Protocol() != udpcommon.ICMP // Always allow ping
 	}
 	src, dst := TransportPacket(ip.Body()).Ports()
+	log.Println("Ports discovered: %v:%v, %v:%v", sf.ports[src], src, sf.ports[dst], dst)
 	if len(sf.ports) > 0 {
 		if sf.ports[src] && sf.ports[dst] {
-            log.Println("hit blacklisted port")
+			log.Println("hit blacklisted port")
 			return false
 		}
 	}
@@ -123,7 +124,7 @@ func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 		if len(sf.ports) > 0 || sf.ports[dst] && src > 0 {
 			// Allowed outbound packet, remember the source port so that inbound
 			// traffic is allowed to hit that destination port.
-            log.Println("Outbound packet filter")
+			log.Println("Outbound packet filter")
 			atomic.StoreUint64(&sf.outMap[src], timeNow())
 			return false
 		}
@@ -131,13 +132,13 @@ func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 		if len(sf.ports) > 0 || sf.ports[src] && dst > 0 {
 			// Check whether the destination port is somewhere we have sent
 			// an outbound packet to.
-            log.Println("Inbound packet filter")
 			ts := atomic.LoadUint64(&sf.outMap[dst])
 			return timeNow()-ts >= expireTimeout
 		}
 		if len(sf.ports) > 0 || sf.ports[dst] && src > 0 {
 			// Allowed inbound packet, remember the source port so that outbound
 			// traffic is allowed to hit that destination port.
+			log.Println("Inbound packet filter")
 			atomic.StoreUint64(&sf.inMap[src], timeNow())
 			return false
 		}

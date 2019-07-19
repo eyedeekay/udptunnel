@@ -26,19 +26,19 @@ import (
 )
 
 type Tunnel struct {
-	Server           bool
-	tunDevName       string
-	tunLocalAddr     net.Addr
-	tunRemoteAddr    net.Addr
-	netAddr          net.Addr
-	ports            []uint16
-	magic            string
-	beatInterval     time.Duration
+	Server        bool
+	tunDevName    string
+	tunLocalAddr  net.Addr
+	tunRemoteAddr net.Addr
+	netAddr       net.Addr
+	ports         []uint16
+	magic         string
+	beatInterval  time.Duration
 	//sock             net.PacketConn
 	setupSock        func(net.Addr) net.PacketConn
 	resolve          func() (net.Addr, error)
 	updateRemoteAddr func(net.Addr)
-    loadRemoteAddr   func() net.Addr
+	loadRemoteAddr   func() net.Addr
 
 	log udpcommon.Logger
 
@@ -57,9 +57,9 @@ func (t *Tunnel) defaultSetupSock(netAddr net.Addr) net.PacketConn {
 	if port == "" {
 		port = "0"
 	}
-    if !t.Server {
-        host = ""
-    }
+	if !t.Server {
+		host = ""
+	}
 	laddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(host, port))
 	if err != nil {
 		log.Fatalf("error resolving address: %v", err)
@@ -172,7 +172,7 @@ func (t Tunnel) Run(ctx context.Context) {
 			if t.beatInterval == 0 {
 				return
 			}
-            t.log.Printf("Ticker heartbeat interval: %v", t.beatInterval.Seconds())
+			t.log.Printf("Ticker heartbeat interval: %v", t.beatInterval.Seconds())
 			ticker := time.NewTicker(t.beatInterval)
 			defer ticker.Stop()
 			var prevTxn uint64
@@ -198,7 +198,7 @@ func (t Tunnel) Run(ctx context.Context) {
 	// Handle outbound traffic.
 	wg.Add(1)
 	go func() {
-        t.log.Printf("out")
+		t.log.Printf("out")
 		defer wg.Done()
 		b := make([]byte, 1<<16)
 		for {
@@ -211,7 +211,7 @@ func (t Tunnel) Run(ctx context.Context) {
 			}
 			n += copy(b, magic[:])
 			p := b[len(magic):n]
-            t.log.Printf("Read %d bytes out", n)
+			t.log.Printf("Read %d bytes out", n)
 
 			raddr := t.loadRemoteAddr()
 			if pf.Filter(p, udpcommon.OutBound) || raddr == nil {
@@ -237,7 +237,7 @@ func (t Tunnel) Run(ctx context.Context) {
 	// Handle inbound traffic.
 	wg.Add(1)
 	go func() {
-        t.log.Printf("in")
+		t.log.Printf("in")
 		defer wg.Done()
 		b := make([]byte, 1<<16)
 		for {
@@ -250,7 +250,7 @@ func (t Tunnel) Run(ctx context.Context) {
 				time.Sleep(time.Second)
 				continue
 			}
-            t.log.Printf("Read %d bytes in", n)
+			t.log.Printf("Read %d bytes in", n)
 			if !bytes.HasPrefix(b[:n], magic[:]) {
 				if t.testDrop != nil {
 					t.testDrop <- append([]byte(nil), b[:n]...)
@@ -293,13 +293,13 @@ func (t Tunnel) Run(ctx context.Context) {
 }
 
 func (t *Tunnel) defaultLoadRemoteAddr() net.Addr {
-    addr, _ := t.remoteAddr.Load().(*net.UDPAddr)
+	addr, _ := t.remoteAddr.Load().(*net.UDPAddr)
 	return addr
 }
 
 func (t *Tunnel) defaultUpdateRemoteAddr(addr net.Addr) {
 	oldAddr := t.loadRemoteAddr()
-    t.log.Printf("Finding new endpoint")
+	t.log.Printf("Finding new endpoint")
 	if addr != nil && (oldAddr == nil || addr.String() != oldAddr.String()) { //|| addr.Zone != oldAddr.Zone) {
 		t.remoteAddr.Store(addr)
 		t.log.Printf("switching remote address: %v != %v", addr, oldAddr)
@@ -362,7 +362,7 @@ func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr
 	tun.setupSock = tun.defaultSetupSock
 	tun.resolve = tun.defaultResolve
 	tun.updateRemoteAddr = tun.defaultUpdateRemoteAddr
-    tun.loadRemoteAddr = tun.defaultLoadRemoteAddr
+	tun.loadRemoteAddr = tun.defaultLoadRemoteAddr
 	return &tun
 }
 
@@ -378,8 +378,8 @@ func NewCustomTunnel(
 	log udpcommon.Logger,
 	setupSocket func(net.Addr) net.PacketConn,
 	resolver func() (net.Addr, error),
-    updateRemoteAddr func(net.Addr),
-    loadRemoteAddr func() net.Addr,
+	updateRemoteAddr func(net.Addr),
+	loadRemoteAddr func() net.Addr,
 ) *Tunnel {
 	tun := Tunnel{
 		Server:        serverMode,
@@ -400,11 +400,11 @@ func NewCustomTunnel(
 	if resolver == nil {
 		tun.resolve = tun.defaultResolve
 	}
-    if updateRemoteAddr == nil {
-        tun.updateRemoteAddr = tun.defaultUpdateRemoteAddr
-    }
-    if loadRemoteAddr == nil {
-        tun.loadRemoteAddr = tun.defaultLoadRemoteAddr
+	if updateRemoteAddr == nil {
+		tun.updateRemoteAddr = tun.defaultUpdateRemoteAddr
+	}
+	if loadRemoteAddr == nil {
+		tun.loadRemoteAddr = tun.defaultLoadRemoteAddr
 	}
 	return &tun
 }

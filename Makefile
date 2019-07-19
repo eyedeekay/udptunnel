@@ -14,4 +14,4 @@ build:
 	go build
 
 fmt:
-	gofmt -w *.go tunnel/*.go filter/*.go logger/*.go
+	gofmt -w -s *.go tunnel/*.go filter/*.go logger/*.go
