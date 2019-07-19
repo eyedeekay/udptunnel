@@ -52,7 +52,6 @@ import (
 	"path"
 	"runtime"
 	"syscall"
-	"time"
 
 	"github.com/dsnet/golib/jsonfmt"
 	_ "github.com/eyedeekay/udptunnel/filter"
@@ -131,7 +130,7 @@ type TunnelConfig struct {
 	PacketMagic string `json:",omitempty"`
 }
 
-func loadConfig(conf string) (tunn udptunnel.Tunnel, Logger *log.Logger, closer func() error) {
+func loadConfig(conf string) (tunn *udptunnel.Tunnel, Logger *log.Logger, closer func() error) {
 	var logBuf bytes.Buffer
 	Logger = log.New(io.MultiWriter(os.Stderr, &logBuf), "", log.Ldate|log.Ltime|log.Lshortfile)
 
@@ -204,15 +203,17 @@ func loadConfig(conf string) (tunn udptunnel.Tunnel, Logger *log.Logger, closer 
 	if len(config.AllowedPorts) == 0 {
 		Logger.Fatalf("no allowed ports specified")
 	}
-	tunn = udptunnel.NewTunnel(serverMode,
+	tunn = udptunnel.NewTunnel(
+		serverMode,
 		config.TunnelDevice,
 		config.TunnelAddress,
 		config.TunnelPeerAddress,
 		config.NetworkAddress,
 		config.AllowedPorts,
 		config.PacketMagic,
-		time.Second*time.Duration(*config.HeartbeatInterval),
-		Logger)
+		*config.HeartbeatInterval,
+		Logger,
+	)
 	return tunn, Logger, closer
 }
 

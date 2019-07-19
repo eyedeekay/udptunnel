@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"sync/atomic"
 	"time"
+    "log"
 
 	"github.com/eyedeekay/udptunnel/common"
 )
@@ -107,6 +108,7 @@ func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 	src, dst := TransportPacket(ip.Body()).Ports()
 	if len(sf.ports) > 0 {
 		if sf.ports[src] && sf.ports[dst] {
+            log.Println("hit blacklisted port")
 			return false
 		}
 	}
@@ -121,6 +123,7 @@ func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 		if len(sf.ports) > 0 || sf.ports[dst] && src > 0 {
 			// Allowed outbound packet, remember the source port so that inbound
 			// traffic is allowed to hit that destination port.
+            log.Println("Outbound packet filter")
 			atomic.StoreUint64(&sf.outMap[src], timeNow())
 			return false
 		}
@@ -128,6 +131,7 @@ func (sf *portFilter) Filter(b []byte, d udpcommon.Direction) (drop bool) {
 		if len(sf.ports) > 0 || sf.ports[src] && dst > 0 {
 			// Check whether the destination port is somewhere we have sent
 			// an outbound packet to.
+            log.Println("Inbound packet filter")
 			ts := atomic.LoadUint64(&sf.outMap[dst])
 			return timeNow()-ts >= expireTimeout
 		}
