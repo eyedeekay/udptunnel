@@ -39,13 +39,13 @@ type Tunnel struct {
 	setupSock        func(net.Addr) net.PacketConn
 	resolve          func() (net.Addr, error)
 	updateRemoteAddr func(net.Addr)
-	loadRemoteAddr   func() net.Addr
+	LoadRemoteAddr   func() net.Addr
 
 	log udpcommon.Logger
 
-	// remoteAddr is the address of the remote endpoint and may be
+	// RemoteAddr is the address of the remote endpoint and may be
 	// arbitrarily updated.
-	remoteAddr atomic.Value
+	RemoteAddr atomic.Value
 
 	// testReady and testDrop are used by tests to detect specific events.
 	testReady chan<- struct{} // Closed when tunnel is ready
@@ -182,7 +182,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 					t.log.Printf("Context is done")
 					return
 				}
-				raddr := t.loadRemoteAddr()
+				raddr := t.LoadRemoteAddr()
 				if raddr == nil { // Skip if no remote endpoint.
 					t.log.Printf("Remote Endpoint Not found")
 					continue
@@ -214,7 +214,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 			p := b[len(magic):n]
 			t.log.Printf("Read %d bytes out", n)
 
-			raddr := t.loadRemoteAddr()
+			raddr := t.LoadRemoteAddr()
 			if pf.Filter(p, udpcommon.OutBound) || raddr == nil {
 				if t.testDrop != nil {
 					t.testDrop <- append([]byte(nil), p...)
@@ -294,15 +294,15 @@ func (t *Tunnel) Run(ctx context.Context) {
 }
 
 func (t *Tunnel) defaultLoadRemoteAddr() net.Addr {
-	addr, _ := t.remoteAddr.Load().(*net.UDPAddr)
+	addr, _ := t.RemoteAddr.Load().(*net.UDPAddr)
 	return addr
 }
 
 func (t *Tunnel) defaultUpdateRemoteAddr(addr net.Addr) {
-	oldAddr := t.loadRemoteAddr()
+	oldAddr := t.LoadRemoteAddr()
 	t.log.Printf("Finding new endpoint")
 	if addr != nil && (oldAddr == nil || addr.String() != oldAddr.String()) { //|| addr.Zone != oldAddr.Zone) {
-		t.remoteAddr.Store(addr)
+		t.RemoteAddr.Store(addr)
 		t.log.Printf("switching remote address: %v != %v", addr, oldAddr)
 	}
 }
@@ -364,7 +364,7 @@ func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr
 	tun.setupSock = tun.defaultSetupSock
 	tun.resolve = tun.defaultResolve
 	tun.updateRemoteAddr = tun.defaultUpdateRemoteAddr
-	tun.loadRemoteAddr = tun.defaultLoadRemoteAddr
+	tun.LoadRemoteAddr = tun.defaultLoadRemoteAddr
 	return &tun
 }
 
@@ -381,7 +381,7 @@ func NewCustomTunnel(
 	setupSocket func(net.Addr) net.PacketConn,
 	resolver func() (net.Addr, error),
 	updateRemoteAddr func(net.Addr),
-	loadRemoteAddr func() net.Addr,
+	LoadRemoteAddr func() net.Addr,
 ) *Tunnel {
 	tun := Tunnel{
 		Server:        serverMode,
@@ -405,8 +405,8 @@ func NewCustomTunnel(
 	if updateRemoteAddr == nil {
 		tun.updateRemoteAddr = tun.defaultUpdateRemoteAddr
 	}
-	if loadRemoteAddr == nil {
-		tun.loadRemoteAddr = tun.defaultLoadRemoteAddr
+	if LoadRemoteAddr == nil {
+		tun.LoadRemoteAddr = tun.defaultLoadRemoteAddr
 	}
 	return &tun
 }
