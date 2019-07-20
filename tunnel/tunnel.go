@@ -40,8 +40,8 @@ type Tunnel struct {
 	resolve          func() (net.Addr, error)
 	updateRemoteAddr func(net.Addr)
 	LoadRemoteAddr   func() net.Addr
-
-	log udpcommon.Logger
+	writeConn        func(sock net.PacketConn, raddr net.Addr, b []byte, n int, magic [16]byte) (int, error)
+	log              udpcommon.Logger
 
 	// RemoteAddr is the address of the remote endpoint and may be
 	// arbitrarily updated.
@@ -189,7 +189,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 				}
 				txn := pl.Stats().Tx.Okay.Count
 				if prevTxn == txn { // Only send if there is no outbound traffic
-					sock.(*net.UDPConn).WriteToUDP(magic[:], raddr.(*net.UDPAddr))
+					t.writeConn(sock, raddr, nil, 0, magic)
 				}
 				prevTxn = txn
 			}
@@ -223,7 +223,8 @@ func (t *Tunnel) Run(ctx context.Context) {
 				continue
 			}
 
-			if _, err := sock.(*net.UDPConn).WriteToUDP(b[:n], raddr.(*net.UDPAddr)); err != nil {
+			//if _, err := sock.(*net.UDPConn).WriteToUDP(b[:n], raddr.(*net.UDPAddr)); err != nil {
+			if _, err := t.writeConn(sock, raddr, b, n, magic); err != nil {
 				if isDone(ctx) {
 					return
 				}
@@ -307,6 +308,13 @@ func (t *Tunnel) defaultUpdateRemoteAddr(addr net.Addr) {
 	}
 }
 
+func (t *Tunnel) defaultWriteConn(sock net.PacketConn, raddr net.Addr, b []byte, n int, magic [16]byte) (int, error) {
+	if n != 0 {
+		return sock.(*net.UDPConn).WriteToUDP(b[:n], raddr.(*net.UDPAddr))
+	}
+	return sock.(*net.UDPConn).WriteToUDP(magic[:], raddr.(*net.UDPAddr))
+}
+
 // pingIface sends a broadcast ping to the IP range of the TUN device
 // until the TUN device has shutdown.
 func pingIface(addr net.Addr) {
@@ -365,6 +373,7 @@ func NewTunnel(serverMode bool, tunDevName, tunLocalAddr, tunRemoteAddr, netAddr
 	tun.resolve = tun.defaultResolve
 	tun.updateRemoteAddr = tun.defaultUpdateRemoteAddr
 	tun.LoadRemoteAddr = tun.defaultLoadRemoteAddr
+	tun.writeConn = tun.defaultWriteConn
 	return &tun
 }
 
@@ -382,6 +391,7 @@ func NewCustomTunnel(
 	resolver func() (net.Addr, error),
 	updateRemoteAddr func(net.Addr),
 	LoadRemoteAddr func() net.Addr,
+	writeConn func(sock net.PacketConn, raddr net.Addr, b []byte, n int, magic [16]byte) (int, error),
 ) *Tunnel {
 	tun := Tunnel{
 		Server:        serverMode,
@@ -407,6 +417,9 @@ func NewCustomTunnel(
 	}
 	if LoadRemoteAddr == nil {
 		tun.LoadRemoteAddr = tun.defaultLoadRemoteAddr
+	}
+	if writeConn == nil {
+		tun.writeConn = tun.defaultWriteConn
 	}
 	return &tun
 }
