@@ -394,17 +394,20 @@ func NewCustomTunnel(
 	writeConn func(sock net.PacketConn, raddr net.Addr, b []byte, n int, magic [16]byte) (int, error),
 ) *Tunnel {
 	tun := Tunnel{
-		Server:        serverMode,
-		tunDevName:    tunDevName,
-		tunLocalAddr:  tunLocalAddr,
-		tunRemoteAddr: tunRemoteAddr,
-		netAddr:       netAddr,
-		ports:         ports,
-		magic:         magic,
-		beatInterval:  time.Second * time.Duration(beatInterval),
-		log:           log,
-		setupSock:     setupSocket,
-		resolve:       resolver,
+		Server:           serverMode,
+		tunDevName:       tunDevName,
+		tunLocalAddr:     tunLocalAddr,
+		tunRemoteAddr:    tunRemoteAddr,
+		netAddr:          netAddr,
+		ports:            ports,
+		magic:            magic,
+		beatInterval:     time.Second * time.Duration(beatInterval),
+		log:              log,
+		setupSock:        setupSocket,
+		resolve:          resolver,
+		updateRemoteAddr: updateRemoteAddr,
+		LoadRemoteAddr:   LoadRemoteAddr,
+		writeConn:        writeConn,
 	}
 	if setupSocket == nil {
 		tun.setupSock = tun.defaultSetupSock
