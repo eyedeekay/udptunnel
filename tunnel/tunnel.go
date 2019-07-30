@@ -164,6 +164,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 				t.updateRemoteAddr(raddr)
 			}
 		}()
+        t.log.Printf("Remote Address set")
 
 		// Since the local address could change due to switching interfaces
 		// (e.g., switching from cellular hotspot to hardwire ethernet),
