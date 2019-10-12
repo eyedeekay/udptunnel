@@ -87,7 +87,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-    water.Config conf
+    var conf water.Config
 	// Create a new tunnel device (requires root privileges).
     if runtime.GOOS == "windows" {
         conf = water.Config{DeviceType: water.TAP}
