@@ -87,8 +87,13 @@ func (t *Tunnel) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
+    water.Config conf
 	// Create a new tunnel device (requires root privileges).
-	conf := water.Config{DeviceType: water.TUN}
+    if runtime.GOOS == "windows" {
+        conf = water.Config{DeviceType: water.TAP}
+    }else{
+        conf = water.Config{DeviceType: water.TUN}
+    }
 	if runtime.GOOS == "linux" && t.tunDevName != "" {
 		// Use reflect to avoid separate build file for linux-only.
 		reflect.ValueOf(&conf).Elem().FieldByName("Name").SetString(t.tunDevName)
