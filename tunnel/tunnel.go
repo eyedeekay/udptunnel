@@ -87,13 +87,13 @@ func (t *Tunnel) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-    var conf water.Config
+	var conf water.Config
 	// Create a new tunnel device (requires root privileges).
-    if runtime.GOOS == "windows" {
-        conf = water.Config{DeviceType: water.TAP}
-    }else{
-        conf = water.Config{DeviceType: water.TUN}
-    }
+	if runtime.GOOS == "windows" {
+		conf = water.Config{DeviceType: water.TAP}
+	} else {
+		conf = water.Config{DeviceType: water.TUN}
+	}
 	if runtime.GOOS == "linux" && t.tunDevName != "" {
 		// Use reflect to avoid separate build file for linux-only.
 		reflect.ValueOf(&conf).Elem().FieldByName("Name").SetString(t.tunDevName)
@@ -126,7 +126,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 			t.log.Fatalf("ifconfig error: %v", err)
 		}
 	case "windows":
-		t.log.Printf("netsh interface ipv4 add address %s %s 255.255.255.0", iface.Name(), t.tunLocalAddr.String())
+		t.log.Printf("netsh interface ipv4 set address %s static %s 255.255.255.0 %s", iface.Name(), t.tunLocalAddr.String(), t.tunRemoteAddr.String())
 		if err := exec.Command("netsh", "interface", "ipv4", "add", "address", iface.Name(), t.tunLocalAddr.String(), "255.255.255.0"); err != nil {
 			t.log.Fatalf("netsh error: %v", err)
 		}
@@ -169,7 +169,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 				t.updateRemoteAddr(raddr)
 			}
 		}()
-        t.log.Printf("Remote Address set")
+		t.log.Printf("Remote Address set")
 
 		// Since the local address could change due to switching interfaces
 		// (e.g., switching from cellular hotspot to hardwire ethernet),
@@ -430,5 +430,15 @@ func NewCustomTunnel(
 	if writeConn == nil {
 		tun.writeConn = tun.defaultWriteConn
 	}
+	log.Printf("UDPTUNNEL LOG\n\t Server=%b \n\t Name=%s \n\t tunLocalAddr=%s \n\t tunRemoteAddr=%s \n\t netAddr=%s \n\t %s \n\t %s \n\t %s",
+		tun.Server,
+		tun.tunDevName,
+		tun.tunLocalAddr,
+		tun.tunRemoteAddr,
+		tun.netAddr,
+		tun.ports,
+		tun.magic,
+		tun.beatInterval,
+	)
 	return &tun
 }
