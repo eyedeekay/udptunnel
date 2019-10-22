@@ -127,7 +127,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 		}
 	case "windows":
 		t.log.Printf("netsh interface ipv4 set address %s static %s 255.255.255.0 %s", iface.Name(), t.tunLocalAddr.String(), t.tunRemoteAddr.String())
-		if err := exec.Command("netsh", "interface", "ipv4", "add", "address", iface.Name(), t.tunLocalAddr.String(), "255.255.255.0"); err != nil {
+		if err := exec.Command("netsh", "interface", "ipv4", "set", "address", iface.Name(), "static" t.tunLocalAddr.String(), "255.255.255.0", t.tunRemoteAddr.String()); err != nil {
 			t.log.Fatalf("netsh error: %v", err)
 		}
 	default:
