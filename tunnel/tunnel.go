@@ -91,7 +91,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 	// Create a new tunnel device (requires root privileges).
 	if runtime.GOOS == "windows" {
 		conf = water.Config{
-			DeviceType: water.TAP,
+			DeviceType:             water.TAP,
 			PlatformSpecificParams: t.PlatformSpecificParams(),
 		}
 	} else {
