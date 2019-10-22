@@ -92,14 +92,19 @@ func (t *Tunnel) Run(ctx context.Context) {
 	if runtime.GOOS == "windows" {
 		conf = water.Config{
 			DeviceType:             water.TAP,
-			PlatformSpecificParams: t.PlatformSpecificParams(),
 		}
 	} else {
 		conf = water.Config{DeviceType: water.TUN}
 	}
-	if runtime.GOOS == "linux" && t.tunDevName != "" {
+	if runtime.GOOS == "darwin" && t.tunDevName != "" {
 		// Use reflect to avoid separate build file for linux-only.
 		reflect.ValueOf(&conf).Elem().FieldByName("Name").SetString(t.tunDevName)
+	} else if runtime.GOOS == "linux" && t.tunDevName != "" {
+		// Use reflect to avoid separate build file for linux-only.
+		reflect.ValueOf(&conf).Elem().FieldByName("Name").SetString(t.tunDevName)
+	} else if runtime.GOOS == "windows" && t.tunDevName != "" {
+		reflect.ValueOf(&conf).Elem().FieldByName("InterfaceName").SetString(t.tunDevName)
+		reflect.ValueOf(&conf).Elem().FieldByName("Network").SetString(t.tunLocalAddr.String() + "/24")
 	}
 	iface, err := water.New(conf)
 	if err != nil {
