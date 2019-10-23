@@ -92,20 +92,21 @@ func (t *Tunnel) Run(ctx context.Context) {
 	if runtime.GOOS == "windows" {
 		conf = water.Config{
 			DeviceType: water.TAP,
+            PlatformSpecificParams: water.PlatformSpecificParams{},
 		}
 	} else {
 		conf = water.Config{DeviceType: water.TUN}
 	}
 	if runtime.GOOS == "darwin" && t.tunDevName != "" {
 		// Use reflect to avoid separate build file for linux-only.
-		reflect.ValueOf(&conf).Elem().FieldByName("Name").SetString(t.tunDevName)
+		reflect.ValueOf(&conf.PlatformSpecificParams).Elem().FieldByName("Name").SetString(t.tunDevName)
 	} else if runtime.GOOS == "linux" && t.tunDevName != "" {
 		// Use reflect to avoid separate build file for linux-only.
-		reflect.ValueOf(&conf).Elem().FieldByName("Name").SetString(t.tunDevName)
+		reflect.ValueOf(&conf.PlatformSpecificParams).Elem().FieldByName("Name").SetString(t.tunDevName)
 	} else if runtime.GOOS == "windows" && t.tunDevName != "" {
-		reflect.ValueOf(&conf).Elem().FieldByName("InterfaceName").SetString(t.tunDevName)
-		reflect.ValueOf(&conf).Elem().FieldByName("Network").SetString(t.tunLocalAddr.String() + "/24")
-        reflect.ValueOf(&conf).Elem().FieldByName("ComponentID").SetString("tap0901")
+		reflect.ValueOf(&conf.PlatformSpecificParams).Elem().FieldByName("InterfaceName").SetString(t.tunDevName)
+		reflect.ValueOf(&conf.PlatformSpecificParams).Elem().FieldByName("Network").SetString(t.tunLocalAddr.String() + "/24")
+        reflect.ValueOf(&conf.PlatformSpecificParams).Elem().FieldByName("ComponentID").SetString("tap0901")
 	}
 	iface, err := water.New(conf)
 	if err != nil {
