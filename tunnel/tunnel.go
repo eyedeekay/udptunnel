@@ -104,9 +104,9 @@ func (t *Tunnel) Run(ctx context.Context) {
 		// Use reflect to avoid separate build file for linux-only.
 		reflect.ValueOf(&conf.PlatformSpecificParams).Elem().FieldByName("Name").SetString(t.tunDevName)
 	} else if runtime.GOOS == "windows" && t.tunDevName != "" {
-		reflect.ValueOf(&conf.PlatformSpecificParams).Elem().FieldByName("InterfaceName").SetString(t.tunDevName)
+		//reflect.ValueOf(&conf.PlatformSpecificParams).Elem().FieldByName("InterfaceName").SetString(t.tunDevName)
 		reflect.ValueOf(&conf.PlatformSpecificParams).Elem().FieldByName("Network").SetString(t.tunLocalAddr.String() + "/24")
-        reflect.ValueOf(&conf.PlatformSpecificParams).Elem().FieldByName("ComponentID").SetString("tap0901")
+        //reflect.ValueOf(&conf.PlatformSpecificParams).Elem().FieldByName("ComponentID").SetString("tap0901")
 	}
 	iface, err := water.New(conf)
 	if err != nil {
