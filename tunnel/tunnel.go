@@ -102,7 +102,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 		reflect.ValueOf(&conf).Elem().FieldByName("Name").SetString(t.tunDevName)
 	} else if runtime.GOOS == "windows" && t.tunDevName != "" {
 		//reflect.ValueOf(&conf).Elem().FieldByName("InterfaceName").SetString(t.tunDevName)
-		reflect.ValueOf(&conf).Elem().FieldByName("Network").SetString(t.tunLocalAddr.String() + "/24")
+		//reflect.ValueOf(&conf).Elem().FieldByName("Network").SetString(t.tunLocalAddr.String() + "/24")
 		//reflect.ValueOf(&conf).Elem().FieldByName("ComponentID").SetString("tap0901")
 	}
 	iface, err := water.New(conf)
