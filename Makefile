@@ -26,7 +26,7 @@ lint:
 	find . -name '*.go' -exec golint {} \;
 
 USER_GH=eyedeekay
-VERSION=0.0.6
+VERSION=0.0.7
 
 version:
 	gothub release -s $(GITHUB_TOKEN) -u $(USER_GH) -r udptunnel -t v$(VERSION) -d "version $(VERSION)"
