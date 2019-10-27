@@ -35,6 +35,7 @@ type Tunnel struct {
 	ports         []uint16
 	magic         string
 	beatInterval  time.Duration
+	iface         *water.Interface
 	//sock             net.PacketConn
 	setupSock        func(net.Addr) net.PacketConn
 	resolve          func() (net.Addr, error)
@@ -87,73 +88,44 @@ func (t *Tunnel) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	var conf water.Config
-	// Create a new tunnel device (requires root privileges).
-	if runtime.GOOS == "windows" {
-		conf = water.Config{DeviceType: water.TAP}
-	} else {
-		conf = water.Config{DeviceType: water.TUN}
-	}
-	if runtime.GOOS == "darwin" && t.tunDevName != "" {
-		// Use reflect to avoid separate build file for linux-only.
-		reflect.ValueOf(&conf).Elem().FieldByName("Name").SetString(t.tunDevName)
-	} else if runtime.GOOS == "linux" && t.tunDevName != "" {
-		// Use reflect to avoid separate build file for linux-only.
-		reflect.ValueOf(&conf).Elem().FieldByName("Name").SetString(t.tunDevName)
-	} else if runtime.GOOS == "windows" && t.tunDevName != "" {
-		//reflect.ValueOf(&conf).Elem().FieldByName("InterfaceName").SetString(t.tunDevName)
-		//reflect.ValueOf(&conf).Elem().FieldByName("Network").SetString(t.tunLocalAddr.String() + "/24")
-		//reflect.ValueOf(&conf).Elem().FieldByName("ComponentID").SetString("tap0901")
-	}
-	iface, err := water.New(conf)
-	if err != nil {
-		t.log.Fatalf("error creating tun device: %v", err)
-	}
-
-	if runtime.GOOS == "windows" {
-		t.log.Printf("created tap device: %v", iface.Name())
-	} else {
-		t.log.Printf("created tun device: %v", iface.Name())
-	}
-
-	defer iface.Close()
+	defer t.iface.Close()
 	defer pingIface(t.tunLocalAddr)
 
 	// Setup IP properties.
 	switch runtime.GOOS {
 	case "linux":
-		t.log.Printf("/sbin/ip link set dev %s mtu 1300", iface.Name())
+		t.log.Printf("/sbin/ip link set dev %s mtu 1300", t.iface.Name())
 		cmd := exec.Command(
 			"/sbin/ip",
 			"link",
 			"set",
 			"dev",
-			iface.Name(),
+			t.iface.Name(),
 			"mtu",
 			"1300",
 		)
 		if err := cmd.Run(); err != nil {
 			t.log.Fatalf("ip link error: %v", err)
 		}
-		t.log.Printf("/sbin/ip addr add %s %s", t.tunLocalAddr.String()+"/24 dev", iface.Name())
+		t.log.Printf("/sbin/ip addr add %s %s", t.tunLocalAddr.String()+"/24 dev", t.iface.Name())
 		cmd = exec.Command(
 			"/sbin/ip",
 			"addr",
 			"add",
 			t.tunLocalAddr.String()+"/24",
 			"dev",
-			iface.Name(),
+			t.iface.Name(),
 		)
 		if err := cmd.Run(); err != nil {
 			t.log.Fatalf("ip addr error: %v", err)
 		}
-		t.log.Printf("/sbin/ip link set dev %s up", iface.Name())
+		t.log.Printf("/sbin/ip link set dev %s up", t.iface.Name())
 		cmd = exec.Command(
 			"/sbin/ip",
 			"link",
 			"set",
 			"dev",
-			iface.Name(),
+			t.iface.Name(),
 			"up",
 		)
 		if err := cmd.Run(); err != nil {
@@ -162,7 +134,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 	case "darwin":
 		cmd := exec.Command(
 			"/sbin/ifconfig",
-			iface.Name(),
+			t.iface.Name(),
 			"mtu",
 			"1300",
 			t.tunLocalAddr.String(),
@@ -173,14 +145,14 @@ func (t *Tunnel) Run(ctx context.Context) {
 			t.log.Fatalf("ifconfig error: %v", err)
 		}
 	case "windows":
-		t.log.Printf("netsh interface ipv4 set address name=%s static address=%s mask=255.255.255.0 gateway=%s", iface.Name(), t.tunLocalAddr.String(), t.tunRemoteAddr.String())
+		t.log.Printf("netsh interface ipv4 set address name=%s static address=%s mask=255.255.255.0 gateway=%s", t.iface.Name(), t.tunLocalAddr.String(), t.tunRemoteAddr.String())
 		cmd := exec.Command(
 			"netsh",
 			"interface",
 			"ipv4",
 			"set",
 			"address",
-			"name="+iface.Name(),
+			"name="+t.iface.Name(),
 			"source=static",
 			"address="+t.tunLocalAddr.String(),
 			"mask=255.255.255.0",
@@ -268,7 +240,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 		defer wg.Done()
 		b := make([]byte, 1<<16)
 		for {
-			n, err := iface.Read(b[len(magic):])
+			n, err := t.iface.Read(b[len(magic):])
 			if err != nil {
 				if isDone(ctx) {
 					return
@@ -346,7 +318,7 @@ func (t *Tunnel) Run(ctx context.Context) {
 				continue
 			}
 
-			if _, err := iface.Write(p); err != nil {
+			if _, err := t.iface.Write(p); err != nil {
 				if isDone(ctx) {
 					return
 				}
@@ -406,6 +378,39 @@ func isDone(ctx context.Context) bool {
 	default:
 		return false
 	}
+}
+
+func (t *Tunnel) Setup() error {
+	var conf water.Config
+	// Create a new tunnel device (requires root privileges).
+	if runtime.GOOS == "windows" {
+		conf = water.Config{DeviceType: water.TAP}
+	} else {
+		conf = water.Config{DeviceType: water.TUN}
+	}
+	if runtime.GOOS == "darwin" && t.tunDevName != "" {
+		// Use reflect to avoid separate build file for linux-only.
+		reflect.ValueOf(&conf).Elem().FieldByName("Name").SetString(t.tunDevName)
+	} else if runtime.GOOS == "linux" && t.tunDevName != "" {
+		// Use reflect to avoid separate build file for linux-only.
+		reflect.ValueOf(&conf).Elem().FieldByName("Name").SetString(t.tunDevName)
+	} else if runtime.GOOS == "windows" && t.tunDevName != "" {
+		//reflect.ValueOf(&conf).Elem().FieldByName("InterfaceName").SetString(t.tunDevName)
+		reflect.ValueOf(&conf).Elem().FieldByName("Network").SetString(t.tunLocalAddr.String() + "/24")
+		reflect.ValueOf(&conf).Elem().FieldByName("ComponentID").SetString("tap0901")
+	}
+	var err error
+	t.iface, err = water.New(conf)
+	if err != nil {
+		return err
+	}
+
+	if runtime.GOOS == "windows" {
+		t.log.Printf("created tap device: %v", t.iface.Name())
+	} else {
+		t.log.Printf("created tun device: %v", t.iface.Name())
+	}
+	return nil
 }
 
 // NewTunnel *safely* generates a new Tunnel object using the defaults functions.

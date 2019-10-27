@@ -225,6 +225,9 @@ func main() {
 		os.Exit(1)
 	}
 	tunn, Logger, closer := loadConfig(os.Args[1])
+	if err := tunn.Setup(); err != nil {
+		panic(err)
+	}
 	defer closer()
 
 	// Setup signal handler to initiate shutdown.
