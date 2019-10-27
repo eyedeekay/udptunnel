@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"fmt"
 	"log"
 	"net"
 	"os/exec"
@@ -90,80 +91,6 @@ func (t *Tunnel) Run(ctx context.Context) {
 
 	defer t.iface.Close()
 	defer pingIface(t.tunLocalAddr)
-
-	// Setup IP properties.
-	switch runtime.GOOS {
-	case "linux":
-		t.log.Printf("/sbin/ip link set dev %s mtu 1300", t.iface.Name())
-		cmd := exec.Command(
-			"/sbin/ip",
-			"link",
-			"set",
-			"dev",
-			t.iface.Name(),
-			"mtu",
-			"1300",
-		)
-		if err := cmd.Run(); err != nil {
-			t.log.Fatalf("ip link error: %v", err)
-		}
-		t.log.Printf("/sbin/ip addr add %s %s", t.tunLocalAddr.String()+"/24 dev", t.iface.Name())
-		cmd = exec.Command(
-			"/sbin/ip",
-			"addr",
-			"add",
-			t.tunLocalAddr.String()+"/24",
-			"dev",
-			t.iface.Name(),
-		)
-		if err := cmd.Run(); err != nil {
-			t.log.Fatalf("ip addr error: %v", err)
-		}
-		t.log.Printf("/sbin/ip link set dev %s up", t.iface.Name())
-		cmd = exec.Command(
-			"/sbin/ip",
-			"link",
-			"set",
-			"dev",
-			t.iface.Name(),
-			"up",
-		)
-		if err := cmd.Run(); err != nil {
-			t.log.Fatalf("ip link error: %v", err)
-		}
-	case "darwin":
-		cmd := exec.Command(
-			"/sbin/ifconfig",
-			t.iface.Name(),
-			"mtu",
-			"1300",
-			t.tunLocalAddr.String(),
-			t.tunRemoteAddr.String(),
-			"up",
-		)
-		if err := cmd.Run(); err != nil {
-			t.log.Fatalf("ifconfig error: %v", err)
-		}
-	case "windows":
-		t.log.Printf("netsh interface ipv4 set address name=%s static address=%s mask=255.255.255.0 gateway=%s", t.iface.Name(), t.tunLocalAddr.String(), t.tunRemoteAddr.String())
-		cmd := exec.Command(
-			"netsh",
-			"interface",
-			"ipv4",
-			"set",
-			"address",
-			"name="+t.iface.Name(),
-			"source=static",
-			"address="+t.tunLocalAddr.String(),
-			"mask=255.255.255.0",
-			"gateway="+t.tunRemoteAddr.String(),
-		)
-		if err := cmd.Run(); err != nil {
-			t.log.Fatalf("netsh error: %v", err)
-		}
-	default:
-		t.log.Fatalf("no tun support for: %v", runtime.GOOS)
-	}
 
 	sock := t.setupSock(t.netAddr)
 	defer sock.Close()
@@ -409,6 +336,79 @@ func (t *Tunnel) Setup() error {
 		t.log.Printf("created tap device: %v", t.iface.Name())
 	} else {
 		t.log.Printf("created tun device: %v", t.iface.Name())
+	}
+	// Setup IP properties.
+	switch runtime.GOOS {
+	case "linux":
+		t.log.Printf("/sbin/ip link set dev %s mtu 1300", t.iface.Name())
+		cmd := exec.Command(
+			"/sbin/ip",
+			"link",
+			"set",
+			"dev",
+			t.iface.Name(),
+			"mtu",
+			"1300",
+		)
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+		t.log.Printf("/sbin/ip addr add %s %s", t.tunLocalAddr.String()+"/24 dev", t.iface.Name())
+		cmd = exec.Command(
+			"/sbin/ip",
+			"addr",
+			"add",
+			t.tunLocalAddr.String()+"/24",
+			"dev",
+			t.iface.Name(),
+		)
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+		t.log.Printf("/sbin/ip link set dev %s up", t.iface.Name())
+		cmd = exec.Command(
+			"/sbin/ip",
+			"link",
+			"set",
+			"dev",
+			t.iface.Name(),
+			"up",
+		)
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+	case "darwin":
+		cmd := exec.Command(
+			"/sbin/ifconfig",
+			t.iface.Name(),
+			"mtu",
+			"1300",
+			t.tunLocalAddr.String(),
+			t.tunRemoteAddr.String(),
+			"up",
+		)
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+	case "windows":
+		t.log.Printf("netsh interface ipv4 set address name=%s static address=%s mask=255.255.255.0 gateway=%s", t.iface.Name(), t.tunLocalAddr.String(), t.tunRemoteAddr.String())
+		cmd := exec.Command(
+			"netsh",
+			"interface",
+			"ipv4",
+			"set",
+			"address",
+			"name="+t.iface.Name(),
+			"source=static",
+			"address="+t.tunLocalAddr.String(),
+			"mask=255.255.255.0",
+			"gateway="+t.tunRemoteAddr.String(),
+		)
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+	default:
+		fmt.Errorf("no support for: %v", runtime.GOOS)
 	}
 	return nil
 }
